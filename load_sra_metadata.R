@@ -12,3 +12,5 @@
 
 inputfile <- "~/Downloads/SraRunInfo.csv"
 sra_meta <- read.csv(inputfile)
+
+### need to parse SraRunInfo files

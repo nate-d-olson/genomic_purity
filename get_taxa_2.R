@@ -1,7 +1,7 @@
 #################################################################################################################
 ##
 ## Summary: Get taxon information from list of organism names. List based on folder names from NCBI Genbank 
-## genome database download. The information is based on the organisms uid
+## genome database download. The information is based on the organism's uid
 ## Date: 1/10/2014
 ## Author: Nate Olson
 ## Affiliation: National Institute for Standards and Technology
@@ -39,9 +39,9 @@ taxa_df <- ldply(taxa_list, data.frame)
 #limit the taxnomic ranks included to eliminat overlap where some levels have multiple values
 taxa_df <- taxa_df[taxa_df$Rank %in% c("phylum","class","order","family","genus","species"),1:3]
 
-#note that organisms where to taxnomic classification information is obtained are not included 
+#note that organisms where to taxonomic classification information is obtained are not included 
 #in the resulting dataframe, this could be an issue downstream
 taxa_df <- plyr::rename(taxa_df, replace = c(".id". "full_name"))
 taxa <- dcast(taxa_df, full_name~Rank, value.var = "ScientificName")
 taxa <- merge(taxa, uid_df, union("all_bac"), all.y = TRUE)
-write.csv(taxa, "~/Desktop/ref_taxa.csv")
+write.csv(taxa, str_c(working_directory, "/ref_taxa.csv", sep = "")

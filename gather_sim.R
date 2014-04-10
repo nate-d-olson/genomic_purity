@@ -10,8 +10,7 @@
 #################################################################################################################
 
 # Directory with simulated mix sam-report files
-source_directory <- "sam-report/2013_11_23/"
-working_directory <- "~/Desktop/pathoscope_pure_id/"
+source("file_locations.R")
 
 
 #loading function for parsing pathoscop sam-report files
@@ -24,7 +23,7 @@ sim_mix <- data.frame()
 
 #loading sam report files for 75 and 250 bp datasets
 for(i in sizes){
-  setwd(paste(source_directory, i, sep = ""))
+  setwd(paste(sim_source_directory, i, sep = ""))
   files <- list.files()
   sim_mix <- data.frame()
   for(j in files){

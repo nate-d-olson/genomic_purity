@@ -10,12 +10,10 @@
 #################################################################################################################
 
 # Directory with simulated mix sam-report files
-source_directory <- "sam-report/"
-working_directory <- "~/Desktop/pathoscope_pure_id/"
-
+source("file_locations.R")
 
 #loading function for parsing pathoscop sam-report files
-setwd(working_directory)
+#setwd(working_directory)
 source("parse_sam_report.R")
 
 dates <- c("2013_12_17","2013_12_20")
@@ -23,7 +21,7 @@ real_data <- data.frame()
 
 #loading sam report files for real datasets
 for(i in dates){
-  setwd(paste(source_directory, i, sep = ""))
+  setwd(paste(real_source_directory, i, sep = ""))
   files <- list.files()
   for(j in files){
     df <- parse_sam_report(j)
