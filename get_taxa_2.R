@@ -1,7 +1,7 @@
 #################################################################################################################
 ##
 ## Summary: Get taxon information from list of organism names. List based on folder names from NCBI Genbank 
-## genome database download.
+## genome database download. The information is based on the organisms uid
 ## Date: 1/10/2014
 ## Author: Nate Olson
 ## Affiliation: National Institute for Standards and Technology
@@ -19,26 +19,29 @@ library(plyr)
 
 sessionInfo()
 
-# Input list of organism names used as reference in mapping
-all_bac <- readLines("~/Desktop/taxa_names.txt")
+##### Input list of organism names used as reference in mapping
+all_bac <- readLines("taxa_names.txt")
 
-#cleaning up names
-#uid <- gsub(".*uid","", all_bac) - may want to incorporate in output later as the uid are unique to each genome
+##### Cleaning up names generating list of bacteria names and data frame of names and uid
+uid <- gsub(".*uid","", all_bac)
 all_bac <- gsub("/media/second/DATAFILES/Bacteria/", "", all_bac)
 all_bac <- gsub("_uid.*", "", all_bac)
 all_bac <- gsub("_"," ", all_bac)
-taxa_list<- list()
+uid_df <- data.frame(uid, full_name = all_bac)
 
-#gets taxonomic classification from NCBI database using the taxize package
+##### Gets taxonomic classification from NCBI database using the taxize package
+taxa_list<- list()
 taxa_list <- classification(unique(all_bac), db = 'ncbi')
 
 
-#reformat taxize output to dataframe and write to file as csv
+### reformat taxize output to dataframe and write to file as csv
 taxa_df <- ldply(taxa_list, data.frame)
 #limit the taxnomic ranks included to eliminat overlap where some levels have multiple values
 taxa_df <- taxa_df[taxa_df$Rank %in% c("phylum","class","order","family","genus","species"),1:3]
 
 #note that organisms where to taxnomic classification information is obtained are not included 
 #in the resulting dataframe, this could be an issue downstream
-taxa <- dcast(taxa_df, .id~Rank, value.var = "ScientificName")
+taxa_df <- plyr::rename(taxa_df, replace = c(".id". "full_name"))
+taxa <- dcast(taxa_df, full_name~Rank, value.var = "ScientificName")
+taxa <- merge(taxa, uid_df, union("all_bac"), all.y = TRUE)
 write.csv(taxa, "~/Desktop/ref_taxa.csv")

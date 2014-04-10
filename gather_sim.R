@@ -59,5 +59,4 @@ sim_mix$prop1[sim_mix$prop2 %in% c(75,250)] <- 1
 sim_mix$prop2[sim_mix$prop2 %in% c(75,250)] <- 1
 
 write.csv(sim_mix, "simulated_mix.csv")
-
-
+rm(list = ls())

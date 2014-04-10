@@ -38,3 +38,4 @@ for(i in dates){
 real_data$input_filename <- gsub("-sam-report.tsv","",real_data$input_filename)
 
 write.csv(real_data, "real_data.csv")
+rm(list = ls())
