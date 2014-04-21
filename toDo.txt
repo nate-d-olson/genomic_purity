@@ -1,0 +1,21 @@
+####
+To Do:
+Work out robust taxa matching
+need to find script or rewrite script to generate bac_all_taxa.csv
+
+from sim match
+#need to expand to include higher level matches
+#need to look into the robustness to the matching approach
+#best approach maybe to work with directory names and fasta seq names
+#fasta seq has unique id pathoscope returns, directory name has unique id
+
+#Too many no matches - need to workout annother approach
+- look into using the ncbi_taxonomy repository - in downloads directory
+
+####
+Keep in mind what versions/ resource files need to be locked down, namely pathoscope and 
+
+# Use gi_taxid_nucl.dmp to get tid from gi numbers
+need method to get tid from gi
+have gi for pathoscope matches - need to get tid for source organisms
+
