@@ -16,6 +16,14 @@
 # score matches on taxonomic level
 ####------------------------------
 
+####-----------------
+##
+## required functions
+##
+####-----------------
+source("match_tid.R")
+library(stringr)
+
 ####--------------
 ##
 ## required inputs
@@ -48,100 +56,42 @@ path_matches$X <- NULL
 # $ prop2                        : num  1 1 1 1 1 1 1 1 1 1 ...
 
 ## org1 and org2 indicate the source organisms, numbers are source directory uid
+path_matches <- subset(path_matches, select = c(Genome,org1,org2,prop1,prop2))
 
-## taxonomy of pathoscope match
-#------------------------------
-path_match_taxa <- read.csv("bac_all_taxa.csv", stringsAsFactor = FALSE)
-path_match_taxa$X <- NULL
-# 'data.frame':  1295 obs. of  7 variables:
-#   $ X      : int  1 2 3 4 5 6 7 8 9 10 ...
-# $ full_name    : chr  "Acaryochloris marina" "Acetobacter pasteurianus" "Acetobacterium woodii" "Acetohalobium arabaticum" ...
-# $ class  : chr  NA "Alphaproteobacteria" "Clostridia" "Clostridia" ...
-# $ genus  : chr  "Acaryochloris" "Acetobacter" "Acetobacterium" "Acetohalobium" ...
-# $ order  : chr  "Chroococcales" "Rhodospirillales" "Clostridiales" "Halanaerobiales" ...
-# $ phylum : chr  "Cyanobacteria" "Proteobacteria" "Firmicutes" "Firmicutes" ...
-# $ species: chr  "Acaryochloris marina" "Acetobacter pasteurianus" "Acetobacterium woodii" "Acetohalobium arabaticum" ...
-path_match_taxa <- rename(x = path_match_taxa,replace=c(".id"="full_name"))
 
-## taxonomy read source
-#----------------------
-source_taxa <- read.csv("ref_taxa.csv", stringsAsFactors = FALSE)
-source_taxa$X <- NULL
-# 'data.frame':  2684 obs. of  9 variables:
-#   $ X        : int  1 2 3 4 5 6 7 8 9 10 ...
-# $ full_name: chr  "Acaryochloris marina MBIC11017" "Acetobacterium woodii DSM 1030" "Acetobacter pasteurianus 386B" "Acetobacter pasteurianus IFO 3283 01 42C" ...
-# $ class    : chr  NA "Clostridia" "Alphaproteobacteria" "Alphaproteobacteria" ...
-# $ family   : chr  NA "Eubacteriaceae" "Acetobacteraceae" "Acetobacteraceae" ...
-# $ genus    : chr  "Acaryochloris" "Acetobacterium" "Acetobacter" "Acetobacter" ...
-# $ order    : chr  "Chroococcales" "Clostridiales" "Rhodospirillales" "Rhodospirillales" ...
-# $ phylum   : chr  "Cyanobacteria" "Firmicutes" "Proteobacteria" "Proteobacteria" ...
-# $ species  : chr  "Acaryochloris marina" "Acetobacterium woodii" "Acetobacter pasteurianus" "Acetobacter pasteurianus" ...
-# $ uid      : chr  "58167" "88073" "214433" "158377" ...
-
-# compare taxnomy of match and source
-# report highest level of match species > genus > ...
-
-# input files
-
-###############################################################################
-## adding unique identifer to all_bac data file
-all_bac <- data.frame(genomes = readLines("all_bac_genomes_names.txt"))
-
-for(i in 1:nrow(all_bac)){
-  uid <- source_taxa$uid[i] 
-  all_bac$uid[grep(source_taxa$full_name[i], all_bac$genomes)] <- source_taxa$uid[i]
+# compare taxonomy of match and source
+#get org1 and org2 taxid
+orgs <- unique(path_matches$org1)
+for(i in orgs){
+  taxid <- GetTaxid(i, 'uid')
+  path_matches$org1_tid[path_matches$org1 == i] <- taxid 
+  path_matches$org2_tid[path_matches$org2 == i] <- taxid 
 }
+rm(orgs)
+#get match taxid
+matches <- unique(path_matches$Genome)
+for(i in matches){
+  gi <- str_extract(string=i,pattern='[0-9]+')
+  taxid <- GetTaxid(gi, 'gi')
+  path_matches$match_tid[path_matches$Genome == i] <- taxid 
+}
+rm(matches, gi, taxid)
 
-###
-# Merging path matches with all_bac
-all_bac$Genome <- str_replace(all_bac$genomes,">","")
-all_bac$Genome <- str_replace(all_bac$Genome," .*","")
-all_bac$genomes <-NULL
-path_matches <- join(path_matches, all_bac)
+#The following were removed from the NCBI database - all three were submitted by the FDA
+path_matches$match_tid[path_matches$Genome == "gi|538360566|ref|NC_022241.1|"] <- 1320309
+path_matches$match_tid[path_matches$Genome == "gi|538397725|ref|NC_022248.1|"] <- 1320309
+path_matches$match_tid[path_matches$Genome == "gi|525826475|ref|NC_021812.1|"] <- 1271864
 
-# 'data.frame':  2684 obs. of  9 variables:
-#   $ X        : int  1 2 3 4 5 6 7 8 9 10 ...
-# $ full_name: chr  "Acaryochloris marina MBIC11017" "Acetobacterium woodii DSM 1030" "Acetobacter pasteurianus 386B" "Acetobacter pasteurianus IFO 3283 01 42C" ...
-# $ class    : chr  NA "Clostridia" "Alphaproteobacteria" "Alphaproteobacteria" ...
-# $ family   : chr  NA "Eubacteriaceae" "Acetobacteraceae" "Acetobacteraceae" ...
-# $ genus    : chr  "Acaryochloris" "Acetobacterium" "Acetobacter" "Acetobacter" ...
-# $ order    : chr  "Chroococcales" "Clostridiales" "Rhodospirillales" "Rhodospirillales" ...
-# $ phylum   : chr  "Cyanobacteria" "Firmicutes" "Proteobacteria" "Proteobacteria" ...
-# $ species  : chr  "Acaryochloris marina" "Acetobacterium woodii" "Acetobacter pasteurianus" "Acetobacter pasteurianus" ...
-# $ uid      : chr  "58167" "88073" "214433" "158377" ...
-
-org1_match <- source_taxa
-colnames(org1_match) <- str_c("org1_",colnames(org1_match, ), sep = "")
-org1_match <-rename(org1_match, replace = c("org1_uid" = "org1"))
-org2_match <- source_taxa
-colnames(org2_match) <- str_c("org2_",colnames(org2_match, ), sep = "")
-org2_match <-rename(org2_match, replace = c("org2_uid" = "org2"))
-
-
-path_matches <- join(path_matches, source_taxa)
-path_matches <- join(path_matches, org1_match)
-path_matches <- join(path_matches, org2_match)
-
-
-path_matches$org1_match[path_matches$phylum == path_matches$org1_phylum] <- "phylum"
-path_matches$org1_match[path_matches$class == path_matches$org1_class] <- "class"
-path_matches$org1_match[path_matches$order == path_matches$org1_order] <- "order"
-path_matches$org1_match[path_matches$genus == path_matches$org1_genus] <- "genus"
-path_matches$org1_match[path_matches$species == path_matches$org1_species] <- "species"
-path_matches$org2_match[path_matches$phylum == path_matches$org2_phylum] <- "phylum"
-path_matches$org2_match[path_matches$class == path_matches$org2_class] <- "class"
-path_matches$org2_match[path_matches$order == path_matches$org2_order] <- "order"
-path_matches$org2_match[path_matches$genus == path_matches$org2_genus] <- "genus"
-path_matches$org2_match[path_matches$species == path_matches$org2_species] <- "species"
-
-
-path_matches$org1_match[path_matches$uid == path_matches$org1] <- "strain"
-path_matches$org2_match[path_matches$uid == path_matches$org2] <- "strain"
-path_matches$org1_match[is.na(path_matches$org1_match)] <- "no match"
-path_matches$org2_match[is.na(path_matches$org2_match)] <- "no match"
-
-#need to expand to include higher level matches
-#need to look into the robustness to the matching approach
-#best approach maybe to work with directory names and fasta seq names
-#fasta seq has unique id pathoscope returns, directory name has unique id
+#finding match level
+genome_hits <- unique(str_c(path_matches$match_tid, path_matches$org1_tid, sep = "_"),str_c(path_matches$match_tid, path_matches$org2_tid, sep = "-"))
+for(i in genome_hits){
+  hits <- as.integer(str_split(string=i,pattern="_")[[1]])
+  match_level <- GetMatchLevel(id1=hits[1],id2=hits[2])
+  path_matches$org1_match[path_matches$match_tid == hits[1] &
+                            path_matches$org1_tid == hits[2]] <- match_level 
+  path_matches$org2_match[path_matches$match_tid == hits[1] &
+                            path_matches$org2_tid == hits[2]] <- match_level 
+}
+rm(genome_hits, i, match_level,hits)
+# writing match data to file
 write.csv(path_matches,"sim_path_matches.csv", row.names = F)

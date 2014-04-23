@@ -11,7 +11,7 @@
 
 # variables
 DB_DIR="/Users/nolson/Documents/ncbi_bac"
-echo "DIR,UID,FASTA,GI" > /Users/nolson/Documents/mirror/purity_study/pathoscope_pure_id/gi_uid_db.csv
+> /Users/nolson/Documents/mirror/purity_study/pathoscope_pure_id/gi_uid_db.csv
 DB_OUT=/Users/nolson/Documents/mirror/purity_study/pathoscope_pure_id/gi_uid_db.csv
 
 #functions
@@ -22,7 +22,7 @@ function parse_directory_name(){
 	
 	uid=$(echo $ORG_NAME_UID | sed "s/$ORG_NAME\_uid//")
 	
-	echo $ORG_NAME,$uid
+	echo $uid
 }
 
 function parse_fasta_names(){
@@ -46,7 +46,7 @@ do
 	for FASTA in $DIR/*fna;
 		do
 			FASTA_GI=$(parse_fasta_names $FASTA)
-			echo $DIR_PARSE,$FASTA,$FASTA_GI >> $DB_OUT
+			echo $DIR_PARSE,$FASTA_GI >> $DB_OUT
 		done
 done
 	
