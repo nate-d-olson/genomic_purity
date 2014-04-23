@@ -19,3 +19,4 @@ Keep in mind what versions/ resource files need to be locked down, namely pathos
 need method to get tid from gi
 have gi for pathoscope matches - need to get tid for source organisms
 
+#note that the match_tid.R - function calls the NCBI database everytime.  Need to limit the number of calls.
