@@ -21,6 +21,7 @@
 ## required functions
 ##
 ####-----------------
+source("file_locations.R")
 source("match_tid.R")
 library(stringr)
 
@@ -32,32 +33,7 @@ library(stringr)
 
 ## pathoscope matches
 #--------------------
-path_matches <- read.csv("simulated_mix.csv", stringsAsFactors = F)
-path_matches$X <- NULL
-# 'data.frame':  8190 obs. of  20 variables:
-# $ Genome                       : chr  "gi|384546269|ref|NC_017337.1|" "gi|387779217|ref|NC_017349.1|" "gi|82749777|ref|NC_007622.1|" "gi|255961454|ref|NC_006570.2|" ...
-# $ Final.Guess                  : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Final.Best.Hit               : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Final.Best.Hit.Read.Numbers  : int  80206 66 35 29 23 12 11 7 5 2 ...
-# $ Final.High.Confidence.Hits   : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Final.Low.Confidence.Hits    : int  0 0 0 0 0 0 0 0 0 0 ...
-# $ Initial.Guess                : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Initial.Best.Hit             : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Initial.Best.Hit.Read.Numbers: int  80206 66 35 29 23 12 11 7 5 2 ...
-# $ Initial.High.Confidence.Hits : num  0.997463 0.000821 0.000435 0.000361 0.000286 ...
-# $ Initial.Low.Confidence.Hits  : int  0 0 0 0 0 0 0 0 0 0 ...
-# $ input_filename               : chr  "159689-250-57589-250" "159689-250-57589-250" "159689-250-57589-250" "159689-250-57589-250" ...
-# $ Aligned_Reads                : int  80410 80410 80410 80410 80410 80410 80410 80410 80410 80410 ...
-# $ Mapped_Genome                : int  22 22 22 22 22 22 22 22 22 22 ...
-# $ size                         : int  250 250 250 250 250 250 250 250 250 250 ...
-# $ org1                         : int  159689 159689 159689 159689 159689 159689 159689 159689 159689 159689 ...
-# $ org2                         : int  57589 57589 57589 57589 57589 57589 57589 57589 57589 57589 ...
-# $ prop1                        : num  1 1 1 1 1 1 1 1 1 1 ...
-# $ prop2                        : num  1 1 1 1 1 1 1 1 1 1 ...
-
-## org1 and org2 indicate the source organisms, numbers are source directory uid
-path_matches <- subset(path_matches, select = c(Genome,org1,org2,prop1,prop2))
-
+path_matches <- read.csv(str_c(path_results_directory,"simulated_contam.csv", sep= "/"), stringsAsFactors = F)
 
 # compare taxonomy of match and source
 #get org1 and org2 taxid
@@ -83,7 +59,8 @@ path_matches$match_tid[path_matches$Genome == "gi|538397725|ref|NC_022248.1|"] <
 path_matches$match_tid[path_matches$Genome == "gi|525826475|ref|NC_021812.1|"] <- 1271864
 
 #finding match level
-genome_hits <- unique(str_c(path_matches$match_tid, path_matches$org1_tid, sep = "_"),str_c(path_matches$match_tid, path_matches$org2_tid, sep = "-"))
+## need to find a way to make unique set not just strings
+genome_hits <- unique(c(str_c(path_matches$match_tid, path_matches$org1_tid, sep = "_"),str_c(path_matches$match_tid, path_matches$org2_tid, sep = "_")))
 for(i in genome_hits){
   hits <- as.integer(str_split(string=i,pattern="_")[[1]])
   match_level <- GetMatchLevel(id1=hits[1],id2=hits[2])
@@ -93,5 +70,14 @@ for(i in genome_hits){
                             path_matches$org2_tid == hits[2]] <- match_level 
 }
 rm(genome_hits, i, match_level,hits)
+
+## match reporting
+# keeping lowest
+path_matches$match <- "no match"
+for(i in rev(c("domain","kingdom","phylum","class","order","family","genus","species"))){
+  path_matches$match[path_matches$org2_match == i] <- str_c(i, "org2", sep = " ") 
+  path_matches$match[path_matches$org1_match == i] <- str_c(i, "org1", sep = " ") 
+}
+
 # writing match data to file
-write.csv(path_matches,"sim_path_matches.csv", row.names = F)
+write.csv(path_matches,str_c(path_results_directory,"sim_contam_matches.csv", sep="/"), row.names = F)
