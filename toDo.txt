@@ -1,22 +1,15 @@
 ####
 To Do:
-Work out robust taxa matching
-need to find script or rewrite script to generate bac_all_taxa.csv
+- figure out issue with pushing to git
+- make file
+- no error analysis
+- test material analysis
+- FDA sample analysis
 
-from sim match
-#need to expand to include higher level matches
-#need to look into the robustness to the matching approach
-#best approach maybe to work with directory names and fasta seq names
-#fasta seq has unique id pathoscope returns, directory name has unique id
 
-#Too many no matches - need to workout annother approach
-- look into using the ncbi_taxonomy repository - in downloads directory
+single organism matching
+make sim_match_score into a function
+  will need to modify to differentiate between single org and simulated contaminated datasets
 
-####
-Keep in mind what versions/ resource files need to be locked down, namely pathoscope and 
+For single organism - need to generate contaminant summary tables
 
-# Use gi_taxid_nucl.dmp to get tid from gi numbers
-need method to get tid from gi
-have gi for pathoscope matches - need to get tid for source organisms
-
-#note that the match_tid.R - function calls the NCBI database everytime.  Need to limit the number of calls.
