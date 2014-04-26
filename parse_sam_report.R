@@ -36,7 +36,7 @@ parse_sam_report <- function(inputfile){
   col_names <- gsub(" ","-", col_names)
   report <- colsplit(input_lines[c(-1,-2)], pattern = "\t", names = col_names)
 
-  #adding meta-date
+  #adding meta-data
   meta <- strsplit(input_lines[1], split = "\t")[[1]]
   report$input_filename <- inputfile
   report$Aligned_Reads <- meta[2]
