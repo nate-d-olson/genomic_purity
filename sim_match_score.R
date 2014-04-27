@@ -54,10 +54,16 @@ for(i in matches){
 rm(matches, gi, taxid)
 
 
-#The following were removed from the NCBI database - all three were submitted by the FDA
+#The following were removed from the NCBI database
+##three submitted by the FDA
 path_matches$match_tid[path_matches$Genome == "gi|538360566|ref|NC_022241.1|"] <- 1320309
 path_matches$match_tid[path_matches$Genome == "gi|538397725|ref|NC_022248.1|"] <- 1320309
 path_matches$match_tid[path_matches$Genome == "gi|525826475|ref|NC_021812.1|"] <- 1271864
+
+## submitted by others
+path_matches$match_tid[path_matches$Genome == "gi|541862390|ref|NC_022268.1|"] <- 104623
+path_matches$match_tid[path_matches$Genome == "gi|264676136|ref|NC_013446.1|"] <- 688245
+
 
 #finding match level
 ## need to find a way to make unique set not just strings
