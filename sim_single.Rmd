@@ -1,0 +1,48 @@
+Summary of single organism data analysis
+========================================================
+## Dataset description:
+
+## Methods summary:
+
+## Results
+
+```{r echo=FALSE, message=FALSE}
+#loading required packages and sourcing files
+library(ggplot2)
+library(stringr)
+library(reshape2)
+library(plyr)
+source("file_locations.R")
+```
+
+### Summary of matches
+```{r}
+sim_matches <- read.csv(str_c(path_results_directory,"/sim_single_matches.csv", sep=""), stringsAsFactor = F)
+```
+
+#### Number of unique Match org hits per combination
+```{r}
+sim_unique_counts <- ddply(sim_matches, .(org_tid, size), summarize, count = length(unique(match_tid)))
+ggplot(sim_unique_counts) + geom_bar(aes(x = as.character(org_tid), 
+                                         y = count, fill = as.character(size)), 
+                                     stat = "identity", position = "dodge") + 
+  labs(x = "Contaminant", y = "Number of hits to unique organisms")+
+  theme_bw()
+```
+```{r}
+sim_unique_counts
+```
+
+### Quantitaive analysis
+Evlauation of match proportion distribtions
+```{r }
+sim_match_sum <- ddply(sim_matches, .(org_tid, size, match), summarize, prop = sum(Final.Guess))
+ggplot(sim_match_sum) + geom_bar(aes(x = as.character(org_tid), y = prop, fill = match), stat = "identity", position = "dodge") +
+  theme_bw() +
+  labs(x = "Organism", y = "Match Proportion")
+```
+```{r}
+sim_match_sum
+```
+
+#Need to figure out a better way to present these resutls
