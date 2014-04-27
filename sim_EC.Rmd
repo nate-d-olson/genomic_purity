@@ -1,4 +1,4 @@
-Summary of single organism data analysis
+Summary of EC single organsism simulated datasets
 ========================================================
 # Dataset description:
 
@@ -12,12 +12,13 @@ library(ggplot2)
 library(stringr)
 library(reshape2)
 library(plyr)
+library()
 source("file_locations.R")
 ```
 
 ## Summary of matches
 ```{r}
-sim_matches <- read.csv(str_c(path_results_directory,"/sim_single_matches.csv", sep=""), stringsAsFactor = F)
+sim_matches <- read.csv(str_c(path_results_directory,"/sim_EC_matches.csv", sep=""), stringsAsFactor = F)
 ```
 
 ### Number of unique Match org hits per combination
@@ -32,21 +33,17 @@ ggplot(sim_unique_counts) +
   theme_bw()
 ```
 #### Observations:
-For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads.     
-Questions:   
-1. How do the differences in number of unique matches compare?      
-2. How does the ranks compare (who has the largest drop in matches with the increase in size)?   
 
 ### Quantitaive analysis
 Evlauation of match proportion distribtions
 ```{r }
-sim_match_sum <- ddply(sim_matches, .(org_tid, size, match), summarize, prop = sum(Final.Guess))
+sim_match_sum <- ddply(sim_matches, .(org, size, match), summarize, prop = sum(Final.Guess))
 sim_match_sum$match <- factor(sim_match_sum$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
-ggplot(sim_match_sum) + geom_line(aes(x = as.numeric(match), y = prop, linetype = as.character(size))) +
+ggplot(sim_match_sum) + geom_jitter(aes(x = as.numeric(match), y = prop, color = as.character(size)), alpha = 0.5) +
   theme_bw() +
   theme(axis.text.x=element_text(angle=-90)) +
   scale_x_continuous(breaks = 1:length(levels(sim_match_sum$match)), labels = levels(sim_match_sum$match)) +
-  labs(x = "Match Classification", y = "Match Proportion", linetype = "Read Size (bp)") + facet_wrap(~org_tid)
+  labs(x = "Match Classification", y = "Match Proportion", linetype = "Read Size (bp)")
 ```
 
 Do the results look better as a table or a graph?
@@ -56,8 +53,5 @@ sim_match_table <- dcast(sim_match_sum[sim_match_sum$prop > 0.000,],org_tid*size
 ```
 ```{r results='asis', echo=FALSE}
  library(xtable)
-  print(xtable(sim_match_table),type='html')
+ # print(xtable(sim_match_table),type='html')
 ```
-
-## Conclusions   
-As expected the quality of the matches increases significantly read size.  For 250 bp reads, contaminats are theoretically easily detected when the lowest common taxonomic level is genus or higher.
