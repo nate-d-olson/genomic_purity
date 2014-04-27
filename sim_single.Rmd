@@ -1,10 +1,10 @@
 Summary of single organism data analysis
 ========================================================
-## Dataset description:
+# Dataset description:
 
-## Methods summary:
+# Methods summary:
 
-## Results
+# Results
 
 ```{r echo=FALSE, message=FALSE}
 #loading required packages and sourcing files
@@ -12,37 +12,53 @@ library(ggplot2)
 library(stringr)
 library(reshape2)
 library(plyr)
+library()
 source("file_locations.R")
 ```
 
-### Summary of matches
+## Summary of matches
 ```{r}
 sim_matches <- read.csv(str_c(path_results_directory,"/sim_single_matches.csv", sep=""), stringsAsFactor = F)
 ```
 
-#### Number of unique Match org hits per combination
+### Number of unique Match org hits per combination
 ```{r}
 sim_unique_counts <- ddply(sim_matches, .(org_tid, size), summarize, count = length(unique(match_tid)))
-ggplot(sim_unique_counts) + geom_bar(aes(x = as.character(org_tid), 
-                                         y = count, fill = as.character(size)), 
-                                     stat = "identity", position = "dodge") + 
-  labs(x = "Contaminant", y = "Number of hits to unique organisms")+
+sim_unique_counts$size <- as.factor(sim_unique_counts$size)
+ggplot(sim_unique_counts) + 
+  geom_boxplot(aes(x = size, y = count), color = "grey") +
+  geom_point(aes(x = size, y = count, color = as.character(org_tid)), size = 4) + 
+  geom_line(aes(x = as.numeric(size), y = count, color = as.character(org_tid))) +
+  labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
   theme_bw()
 ```
-```{r}
-sim_unique_counts
-```
+#### Observations:
+For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads.     
+Questions:   
+1. How do the differences in number of unique matches compare?      
+2. How does the ranks compare (who has the largest drop in matches with the increase in size)?   
 
 ### Quantitaive analysis
 Evlauation of match proportion distribtions
 ```{r }
 sim_match_sum <- ddply(sim_matches, .(org_tid, size, match), summarize, prop = sum(Final.Guess))
-ggplot(sim_match_sum) + geom_bar(aes(x = as.character(org_tid), y = prop, fill = match), stat = "identity", position = "dodge") +
+sim_match_sum$match <- factor(sim_match_sum$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
+ggplot(sim_match_sum) + geom_line(aes(x = as.numeric(match), y = prop, linetype = as.character(size))) +
   theme_bw() +
-  labs(x = "Organism", y = "Match Proportion")
-```
-```{r}
-sim_match_sum
+  theme(axis.text.x=element_text(angle=-90)) +
+  scale_x_continuous(breaks = 1:length(levels(sim_match_sum$match)), labels = levels(sim_match_sum$match)) +
+  labs(x = "Match Classification", y = "Match Proportion", linetype = "Read Size (bp)") + facet_wrap(~org_tid)
 ```
 
-#Need to figure out a better way to present these resutls
+Do the results look better as a table or a graph?
+```{r}
+sim_match_sum$prop <- round(sim_match_sum$prop, 3)
+sim_match_table <- dcast(sim_match_sum[sim_match_sum$prop > 0.000,],org_tid*size~match,value.var = "prop", fill = "")
+```
+```{r results='asis', echo=FALSE}
+ library(xtable)
+  print(xtable(sim_match_table),type='html')
+```
+
+## Conclusions   
+As expected the quality of the matches increases significantly read size.  For 250 bp reads, contaminats are theoretically easily detected when the lowest common taxonomic level is genus or higher.
