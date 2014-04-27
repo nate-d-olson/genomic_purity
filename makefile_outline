@@ -1,0 +1,12 @@
+make file
+
+R scripts
+gather sim
+sim_match_single
+sim_match_score
+
+Rmarkdown files
+sim_contam.Rmd
+sim_EC.Rmd
+sim_BA.Rmd
+sim_single.Rmd
