@@ -8,38 +8,45 @@
 ## Output files: simulated_contam_mix.csv, simulated_full_mix.csv, simulated_single.csv
 ## 
 #################################################################################################################
+
 library(stringr)
-# Directory with simulated mix sam-report files
+library(plyr)
 source("file_locations.R")
-
-
-#loading function for parsing pathoscop sam-report files
-setwd(working_directory)
 source("parse_sam_report.R")
 
 #loading data from indiviudal report files
-sizes <- c(75,250)
+size <- c(75, 250)
 sim_ds <- data.frame()
 
 #loading sam report files for 75 and 250 bp datasets
 #------ can speed up by using plyr to loop through the files
-for(i in sizes){
-  setwd(str_c(sim_source_directory,"/contam_", i, sep = ""))
+for(i in size){
+  setwd(str_c(sim_source_directory, "/contam_", i, sep = ""))
   files <- grep("-sam-report.tsv", list.files(), value = T)
-  for(j in files){
-    df <- parse_sam_report(j)
-    if(length(df) > 0){
-      df$size <- i
-      sim_ds <- rbind(sim_ds, df) 
-    }
-  }
-  setwd(working_directory)
+  df <- ldply(files,parse_sam_report)
+  df$size <- i
+  sim_ds <- rbind(sim_ds, df)
 }
-rm("files","i","j","sizes","df")
+setwd(working_directory)
 sim_ds$input_filename <- str_replace(string=sim_ds$input_filename, 
                                      pattern="-sam-report.tsv",
                                      replacement="")
-#split based on source types
+
+
+mod_input_filename <- function(df){
+  df$input_filename <- str_replace(string=df$input_filename, 
+                                       pattern="-sam-report.tsv",
+                                       replacement="")
+  df <- cbind(df,colsplit(string=df$input_filename,pattern="-", names=c("org","size")))
+  df$input_filename <- str_replace(string= df$input_filename, 
+                                           pattern= "-75|-250",
+                                           replacement= "")
+  return(df)
+}
+
+
+
+
 #1 pure organisms
 single_filenames <- unique(grep("(-75|-250)$", sim_ds$input_filename, value = T))
 sim_single <- sim_ds[sim_ds$input_filename %in% single_filenames,]
@@ -61,9 +68,7 @@ sim_contam_mix <- sim_ds[!(sim_ds$input_filename %in% unique(c(single_filenames,
 ####
 
 ## single sample
-sim_single$input_filename <- str_replace(string= sim_single$input_filename, 
-                                         pattern= "-75|-250",
-                                         replacement= "")
+sim_single <- mod_input_filename(sim_single)
 
 ## sim_contam_mix
 #changing input filenames to allow for split on "-"
@@ -81,4 +86,21 @@ sim_contam_mix <- cbind(sim_contam_mix, colsplit(sim_contam_mix$input_filename,
 write.csv(sim_contam_mix, str_c(path_results_directory,"simulated_contam.csv", sep= "/"), row.names = FALSE)
 write.csv(sim_full_mix, str_c(path_results_directory,"simulated_full.csv", sep= "/"), row.names = FALSE)
 write.csv(sim_single, str_c(path_results_directory,"simulated_single.csv", sep= "/"), row.names = FALSE)
-#rm(list = ls())
+
+## Simulated BA
+setwd(str_c(results_directory, "2013_12_04/BA", sep = "/"))
+files <- grep("-sam-report.tsv", list.files(), value = T)
+sim_BA <- ldply(files,parse_sam_report)
+setwd(working_directory)
+sim_BA <- mod_input_filename(sim_BA)
+write.csv(sim_BA, str_c(path_results_directory,"simulated_BA.csv", sep= "/"), row.names = FALSE)
+
+## Simulated Ecoli
+setwd(str_c(results_directory, "2013_12_09", sep = "/"))
+files <- grep("-sam-report.tsv", list.files(), value = T)
+sim_EC <- ldply(files,parse_sam_report)
+setwd(working_directory)
+sim_EC <- mod_input_filename(sim_EC)
+write.csv(sim_EC, str_c(path_results_directory,"simulated_EC.csv", sep= "/"), row.names = FALSE)
+
+rm(list = ls())
