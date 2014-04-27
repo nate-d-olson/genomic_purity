@@ -87,25 +87,13 @@ Observations: For a number of combinations the limit of detection is lower for 7
 
 ### Quantitaive analysis
 Comparison of final guess values with proportions for exact matches only
-```{r fig.width=12, fig.height=12}
-sim_exact <- ddply(sim_matches[sim_matches$org2_match == "exact",], .(org1_tid,org2_tid,prop1, prop2, size), summarize, est_prop = sum(Final.Guess))
-ggplot(sim_exact) + 
-  geom_abline(aes(yintercept = 0, slope = 1), linetype = 2) +
-  geom_line(aes(x = prop2, y = est_prop, color = as.character(size))) + 
-  facet_grid(org1_tid~org2_tid) +
-  theme_bw() + 
-  theme(axis.text.x=element_text(angle=-90))
-ggplot(sim_exact) + 
-  geom_abline(aes(yintercept = 0, slope = 1), linetype = 2) +
-  geom_line(aes(x = prop2, y = est_prop, color = as.character(size))) + 
-  facet_grid(org1_tid~org2_tid) +
-  theme_bw() + 
-  coord_cartesian(ylim = c(0,0.05)) +
-  theme(axis.text.x=element_text(angle=-90))
-```
-```{r fig.width = 12}
+```{r }
+sim_exact <- ddply(sim_matches[grep("org2", sim_matches$match),], .(org1_tid,org2_tid,prop1, prop2, size), summarize, est_prop = sum(Final.Guess))
 sim_exact$diff <- sim_exact$prop2 - sim_exact$est_prop
-ggplot(sim_exact) + geom_boxplot(aes(x = org2_tid, y = diff, fill = org1_tid), alpha = 0.75) + facet_wrap(~size) + theme_bw()
+```
+
+```{r fig.width = 12, message=FALSE, warning=FALSE}
+ggplot(sim_exact) + geom_point(aes(x = as.factor(prop1), y = diff, color= size), alpha = 0.75, position = position_dodge(width= 1)) + facet_grid(org1_tid~org2_tid) + theme_bw()
 ```
 
 #Need to figure out a better way to present these resutls
