@@ -13,60 +13,99 @@ library(stringr)
 library(reshape2)
 library(plyr)
 source("file_locations.R")
+sim_matches <- read.csv(str_c(path_results_directory,"/sim_contam_matches.csv", sep=""), stringsAsFactor = F)
+for(i in c("org1_tid","org2_tid","size")){
+  sim_matches[,i] <- as.factor(sim_matches[,i])
+}
 ```
+
+### Experimental design
+Number of organisms: `r length(unique(sim_matches$org1))`       
+Organisms: `r unique(sim_matches$org1_tid)`   
+Pairwise mixtures of each organism combinations    
+Number of Proportions: `r length(unique(sim_matches$prop1))`     
+Contaminant Proportions: `r unique(sim_matches$prop2)`   
+**Total datasets:** `r length(unique(sim_matches$input_filename))`   
+
 
 ### Summary of matches
 ```{r}
-sim_matches <- read.csv(str_c(path_results_directory,"/sim_contam_matches.csv", sep=""), stringsAsFactor = F)
-```
-
-#### Number of unique Match org hits per combination
-```{r}
-sim_unique_counts <- ddply(sim_matches, .(org1, org2), summarize, count = length(unique(match_tid)))
-ggplot(sim_unique_counts) + geom_bar(aes(x = as.character(org2), y = count), stat = "identity") + facet_wrap(~org1) +
-  labs(x = "Contaminant", y = "Number of hits to unique organisms")+
+sim_unique_counts <- ddply(sim_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
+ggplot(sim_unique_counts) + 
+  geom_boxplot(aes(x = size, y = count), color = "grey") +
+  geom_point(aes(x = size, y = count, color = org1_tid), size = 4) + 
+  geom_line(aes(x = as.numeric(size), y = count, color = org1_tid)) +
+  labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
   theme_bw()
 ```
-Observations: between 50 and 200 unique organism hits for each of the dataset combinations.  Will need to compare these values for the full dataset mixtures and the single org datasets. Note that the number of unique matches go to the substrain level.
-**A number of -1 for match ids need to look into.**
+#### Observations: 
+Between 50 and 200 unique organism hits for each of the dataset combinations.  The difference in the number of unique matches has a much larger decrease compared to single organisms.  
+Questions:  
+1. can ask similar questions to single organisms   
+2. how do the unique matches compare for single and contaminanted datasets.    
+Note- that the contaminated dataset counts are based on the unqiue matches for 64 datasets, 6 contaminants and 9 mixtures.  
+
 
 #### LOD by organism and contaminant
 ```{r}
-sim_LOD <- ddply(.data=sim_matches,
-                 .variables=.(size, org1, org2, org2_match), 
+sim_LOD <- ddply(.data=sim_matches[grep("org2",sim_matches$match),],
+                 .variables=.(size, org1_tid, org2_tid, org2_match), 
                  summarize, LOD = min(prop2))
+sim_LOD$org2_match <- factor(sim_LOD$org2_match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
 ```
 Limit of detection is defined as the proportion of contaminant with the lowest proportion.  The contaminant proportion is representative of the proprotion of the sample and not the proportion of reads.
-```{r}
-ggplot(sim_LOD[sim_LOD$org2_match == "exact",]) + 
-  geom_bar(aes(x = as.character(org2), y = LOD, fill = as.factor(size)), stat = "identity", position = "dodge") + 
-  geom_hline(aes(yintercept = c(0.01, 0.0001)), linetype = 2) + 
-  facet_grid(~org1, scale = "free_x") + scale_y_log10() +   
+```{r fig.width=12}
+ggplot(sim_LOD) + 
+  geom_bar(aes(x = org1_tid, y = LOD, fill = size), stat = "identity", position = position_dodge(width = 1.5), width = 0.75) + 
+  geom_hline(aes(yintercept = c(0.01, 0.0001, 0.0000025)), linetype = 2) + 
+  facet_grid(~org2_tid, scale = "free_x") + scale_y_log10() +   
   theme_bw() +
   theme(axis.text.x=element_text(angle=-90)) +
-  labs(x = "Contaminant", fill = "Read Size (bp)", y = "Limit of Detection", title = "Exact Matches to Contaminat Genome")
+  labs(x = "Target Organism", fill = "Read Size (bp)", y = "Limit of Detection")
+```
+Matches at any level to the contaminant genome.
+
+```{r message=FALSE, fig.height=6, fig.width=18}
+ggplot(sim_LOD) + 
+  geom_point(aes(x = org1_tid, y= LOD, color = org2_match),alpha = 0.75, position = position_dodge(width = 0.5), size = 3) +
+  geom_line(aes(x = org1_tid, y = LOD)) +
+  labs(linetype = "Read Size (bp)", x = "Match Level") + 
+  scale_y_log10() + 
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=-90)) +
+  facet_grid(size~org2_tid, scale = "free")
+```
+```{r}
+LOD_table <-dcast(sim_LOD,org2_tid*org1_tid~org2_match*size, value.var = "LOD", fill= "")
+```
+```{r results='asis', echo=FALSE}
+ library(xtable)
+  print(xtable(LOD_table),type='html')
 ```
 
-```{r}
-ggplot(sim_LOD[sim_LOD$org2_match == "species",]) + 
-  geom_bar(aes(x = as.character(org2), y = LOD, fill = as.factor(size)), stat = "identity", position = "dodge") + 
-#  geom_hline(aes(yintercept = c(0.01, 0.0001)), linetype = 2) + 
-  facet_grid(~org1, scale = "free_x") + scale_y_log10() +   
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=-90)) +
-  labs(x = "Contaminant", fill = "Read Size (bp)", 
-       y = "Limit of Detection",
-       title = "Species Matches to Contaminat Genome (does not include exact matches)")
-```
 Observations: For a number of combinations the limit of detection is lower for 75 bp compared to 250 bp simulated datasets.  Need to look into the data to make sure this is not due to a bug in the code.
 
 ### Quantitaive analysis
 Comparison of final guess values with proportions for exact matches only
 ```{r fig.width=12, fig.height=12}
-sim_exact <- ddply(sim_matches[sim_matches$org2_match == "exact",], .(org1,org2,prop1, prop2, size), summarize, est_prop = sum(Final.Guess))
-ggplot(sim_exact) + geom_line(aes(x = prop2, y = est_prop, color = as.character(size))) + facet_grid(org1~org2) +
+sim_exact <- ddply(sim_matches[sim_matches$org2_match == "exact",], .(org1_tid,org2_tid,prop1, prop2, size), summarize, est_prop = sum(Final.Guess))
+ggplot(sim_exact) + 
+  geom_abline(aes(yintercept = 0, slope = 1), linetype = 2) +
+  geom_line(aes(x = prop2, y = est_prop, color = as.character(size))) + 
+  facet_grid(org1_tid~org2_tid) +
   theme_bw() + 
   theme(axis.text.x=element_text(angle=-90))
+ggplot(sim_exact) + 
+  geom_abline(aes(yintercept = 0, slope = 1), linetype = 2) +
+  geom_line(aes(x = prop2, y = est_prop, color = as.character(size))) + 
+  facet_grid(org1_tid~org2_tid) +
+  theme_bw() + 
+  coord_cartesian(ylim = c(0,0.05)) +
+  theme(axis.text.x=element_text(angle=-90))
+```
+```{r fig.width = 12}
+sim_exact$diff <- sim_exact$prop2 - sim_exact$est_prop
+ggplot(sim_exact) + geom_boxplot(aes(x = org2_tid, y = diff, fill = org1_tid), alpha = 0.75) + facet_wrap(~size) + theme_bw()
 ```
 
 #Need to figure out a better way to present these resutls
