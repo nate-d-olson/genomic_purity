@@ -53,6 +53,7 @@ for(i in matches){
 }
 rm(matches, gi, taxid)
 
+
 #The following were removed from the NCBI database - all three were submitted by the FDA
 path_matches$match_tid[path_matches$Genome == "gi|538360566|ref|NC_022241.1|"] <- 1320309
 path_matches$match_tid[path_matches$Genome == "gi|538397725|ref|NC_022248.1|"] <- 1320309
@@ -63,18 +64,25 @@ path_matches$match_tid[path_matches$Genome == "gi|525826475|ref|NC_021812.1|"] <
 genome_hits <- unique(c(str_c(path_matches$match_tid, path_matches$org1_tid, sep = "_"),str_c(path_matches$match_tid, path_matches$org2_tid, sep = "_")))
 for(i in genome_hits){
   hits <- as.integer(str_split(string=i,pattern="_")[[1]])
-  match_level <- GetMatchLevel(id1=hits[1],id2=hits[2])
-  path_matches$org1_match[path_matches$match_tid == hits[1] &
-                            path_matches$org1_tid == hits[2]] <- match_level 
-  path_matches$org2_match[path_matches$match_tid == hits[1] &
-                            path_matches$org2_tid == hits[2]] <- match_level 
+  if(hits[1] == hits[2]){
+    path_matches$org1_match[path_matches$match_tid == hits[1] &
+                              path_matches$org1_tid == hits[2]] <- "exact" 
+    path_matches$org2_match[path_matches$match_tid == hits[1] &
+                              path_matches$org2_tid == hits[2]] <- "exact"     
+  } else {
+    match_level <- GetMatchLevel(id1=hits[1],id2=hits[2])
+    path_matches$org1_match[path_matches$match_tid == hits[1] &
+                              path_matches$org1_tid == hits[2]] <- match_level 
+    path_matches$org2_match[path_matches$match_tid == hits[1] &
+                              path_matches$org2_tid == hits[2]] <- match_level  
+  }
 }
 rm(genome_hits, i, match_level,hits)
 
 ## match reporting
 # keeping lowest
 path_matches$match <- "no match"
-for(i in rev(c("domain","kingdom","phylum","class","order","family","genus","species"))){
+for(i in rev(c("domain","kingdom","phylum","class","order","family","genus","species","exact"))){
   path_matches$match[path_matches$org2_match == i] <- str_c(i, "org2", sep = " ") 
   path_matches$match[path_matches$org1_match == i] <- str_c(i, "org1", sep = " ") 
 }
