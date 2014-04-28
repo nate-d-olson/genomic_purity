@@ -37,6 +37,10 @@ GetTaxid <- function(id, type){
   }
 }
 
+GetNameFromTaxid <- function(tid){
+  return(python.call("getNameByTaxid", id))
+}
+
 GetMatchLevel <- function(id1, id2){
   matches <- CompareTaxInfoLocal(id1, id2)
   
