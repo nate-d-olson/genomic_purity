@@ -1,26 +1,36 @@
 Summary of EC single organsism simulated datasets
 ========================================================
-# Dataset description:
-
-# Methods summary:
-
-# Results
-
 ```{r echo=FALSE, message=FALSE}
 #loading required packages and sourcing files
 library(ggplot2)
 library(stringr)
 library(reshape2)
 library(plyr)
-library()
+library(xtable)
 source("file_locations.R")
+source("match_tid.R")
+sim_matches <- read.csv(str_c(path_results_directory,"/sim_EC_matches.csv", sep=""), stringsAsFactor = F)
 ```
+# Dataset description:
+Paired end Illumina reads simulated using ART read simulator for the following organisms (Table 1).
+```{r echo =FALSE}
+org_tid <- unique(sim_matches$org_tid)
+org_name <- c()
+for(i in org_tid){
+  org_name <- c(org_name,python.call("getNameByTaxid", i))
+}
+org_df <- data.frame(tid = org_tid, name = org_name)
+```
+```{r results='asis'}
+print(xtable(org_df),type='html')
+```
+
 
 ## Summary of matches
 ```{r}
 sim_matches <- read.csv(str_c(path_results_directory,"/sim_EC_matches.csv", sep=""), stringsAsFactor = F)
 ```
-
+Large number of organisms from multiple genus - will want to create table of taxonomic level to be able to facet graphs by different shared levels.
 ### Number of unique Match org hits per combination
 ```{r}
 sim_unique_counts <- ddply(sim_matches, .(org_tid, size), summarize, count = length(unique(match_tid)))
@@ -49,9 +59,11 @@ ggplot(sim_match_sum) + geom_jitter(aes(x = as.numeric(match), y = prop, color =
 Do the results look better as a table or a graph?
 ```{r}
 sim_match_sum$prop <- round(sim_match_sum$prop, 3)
-sim_match_table <- dcast(sim_match_sum[sim_match_sum$prop > 0.000,],org_tid*size~match,value.var = "prop", fill = "")
+sim_match_table <- dcast(sim_match_sum,
+                         org*size~match,
+                         value.var = "prop", fill = "")
 ```
 ```{r results='asis', echo=FALSE}
  library(xtable)
- # print(xtable(sim_match_table),type='html')
+print(xtable(sim_match_table),type='html')
 ```
