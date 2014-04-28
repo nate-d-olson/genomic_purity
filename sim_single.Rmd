@@ -9,7 +9,6 @@ library(plyr)
 library(xtable)
 source("file_locations.R")
 source("match_tid.R")
-library(NCBI2R)
 sim_matches <- read.csv(str_c(path_results_directory,"/sim_single_matches.csv", sep=""), stringsAsFactor = F)
 ```
 # Dataset description:

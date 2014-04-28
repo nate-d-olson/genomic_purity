@@ -1,26 +1,32 @@
 Summary of BA single organsism simulated datasets
 ========================================================
-# Dataset description:
-
-# Methods summary:
-
-# Results
-
 ```{r echo=FALSE, message=FALSE}
 #loading required packages and sourcing files
 library(ggplot2)
 library(stringr)
 library(reshape2)
 library(plyr)
-library()
+library(xtable)
 source("file_locations.R")
-```
-
-## Summary of matches
-```{r}
+source("match_tid.R")
 sim_matches <- read.csv(str_c(path_results_directory,"/sim_BA_matches.csv", sep=""), stringsAsFactor = F)
 ```
+# Dataset description:
+Paired end Illumina reads simulated using ART read simulator for the following organisms (Table 1).
+```{r echo =FALSE}
+org_tid <- unique(sim_matches$org_tid)
+org_name <- c()
+for(i in org_tid){
+  org_name <- c(org_name,python.call("getNameByTaxid", i))
+}
+org_df <- data.frame(tid = org_tid, name = org_name)
+```
+```{r results='asis'}
+print(xtable(org_df),type='html')
+```
 
+
+## Summary of matches
 ### Number of unique Match org hits per combination
 ```{r}
 sim_unique_counts <- ddply(sim_matches, .(org_tid, size), summarize, count = length(unique(match_tid)))
@@ -55,3 +61,5 @@ sim_match_table <- dcast(sim_match_sum[sim_match_sum$prop > 0.000,],org_tid*size
  library(xtable)
   print(xtable(sim_match_table),type='html')
 ```
+### Conclusions
+Only genus level matches were obtained for a few of the strains.  For taxonomic groups with high similarity need to limit the taxonomic resolution of the identification methods or contaminant detection level.
