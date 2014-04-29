@@ -96,4 +96,4 @@ sim_exact$diff <- sim_exact$prop2 - sim_exact$est_prop
 ggplot(sim_exact) + geom_point(aes(x = as.factor(prop1), y = diff, color= size), alpha = 0.75, position = position_dodge(width= 1)) + facet_grid(org1_tid~org2_tid) + theme_bw()
 ```
 
-#Need to figure out a better way to present these resutls
+#Need to figure out a better way to present these results
