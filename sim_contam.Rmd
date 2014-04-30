@@ -21,7 +21,18 @@ for(i in c("org1_tid","org2_tid","size")){
 
 ### Experimental design
 Number of organisms: `r length(unique(sim_matches$org1))`       
-Organisms: `r unique(sim_matches$org1_tid)`   
+Organisms: 
+```{r echo =FALSE}
+org_tid <- unique(sim_matches$org_tid)
+org_name <- c()
+for(i in org_tid){
+  org_name <- c(org_name,python.call("getNameByTaxid", i))
+}
+org_df <- data.frame(tid = org_tid, name = org_name)
+```
+```{r results='asis'}
+print(x(xtable(org_df),type='html')
+```
 Pairwise mixtures of each organism combinations    
 Number of Proportions: `r length(unique(sim_matches$prop1))`     
 Contaminant Proportions: `r unique(sim_matches$prop2)`   
@@ -53,7 +64,7 @@ sim_LOD <- ddply(.data=sim_matches[grep("org2",sim_matches$match),],
                  summarize, LOD = min(prop2))
 sim_LOD$org2_match <- factor(sim_LOD$org2_match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
 ```
-Limit of detection is defined as the proportion of contaminant with the lowest proportion.  The contaminant proportion is representative of the proprotion of the sample and not the proportion of reads.
+Limit of detection is defined as the proportion of contaminants with the lowest proportion.  The contaminant proportion is representative of the proprotion of the sample and not the proportion of reads.
 ```{r fig.width=12}
 ggplot(sim_LOD) + 
   geom_bar(aes(x = org1_tid, y = LOD, fill = size), stat = "identity", position = position_dodge(width = 1.5), width = 0.75) + 
