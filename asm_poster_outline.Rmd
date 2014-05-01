@@ -1,4 +1,4 @@
-```{r echo = FALSE, message=FALSE, results='hide'}
+```{r requirements, echo = FALSE, message=FALSE, results='hide'}
 ##  Initial data processing 
 #loading required packages and sourcing files
 library(ggplot2)
@@ -6,13 +6,13 @@ library(stringr)
 library(reshape2)
 library(plyr)
 library(xtable)
+library(combinat)
 source("purity_functions.R")
 source("file_locations.R")
 source("match_tid.R")
 
 #loading single organisms datasets
-single_matches <- str_c(path_results_directory,c("/sim_single_matches.csv", "/sim_BA_matches.csv","/sim_EC_matches.csv"), sep="")
-single_matches <- ldply(single_matches,.fun = read.csv, stringsAsFactors = F)
+single_matches <- read.csv(str_c(path_results_directory,c("/sim_single_matches.csv"), sep=""), stringsAsFactors = F)
 
 #loading simualted contaminant datasets
 contam_matches <- read.csv(str_c(path_results_directory,"/sim_contam_matches.csv", sep=""), stringsAsFactor = F)
@@ -20,7 +20,7 @@ for(i in c("org1_tid","org2_tid","size")){
   contam_matches[,i] <- as.factor(contam_matches[,i])
 }
 ```
-```{r echo=FALSE, message=FALSE}
+```{r org_names, echo=FALSE, message=FALSE}
 org_tid <- unique(single_matches$org_tid)
 org_name <- c()
 #org_species <- c()
@@ -35,6 +35,34 @@ for(i in org_tid){
 }
 org_df <- data.frame(org_tid, name = org_name, genus = org_genus) #species = org_species, 
 org_table <- dcast(org_df,genus~.)
+```
+```{r contam-match-levels, echo=FALSE, message=FALSE}
+#match table taxonomic names find lowest shared common taxonomic level
+org_sets <- combn(as.numeric(levels(contam_matches$org1_tid)), m = 2, simplify=F)
+org_taxa_share <- ldply(org_sets,function(x){GetMatchLevel(id1 =x[1], id2= x[2])})
+org_taxa_share <- cbind(org_taxa_share, ldply(org_sets))
+colnames(org_taxa_share) <- c("match", "org1_tid","org2_tid")
+org_taxa_share2 <- data.frame(match = org_taxa_share$match, 
+                              org1_tid = org_taxa_share$org2_tid,
+                              org2_tid = org_taxa_share$org1_tid)
+org_taxa_share <- rbind(org_taxa_share, org_taxa_share2)
+```
+
+```{r baselines, echo=FALSE, message=FALSE}
+#baseline values
+#from single matches get the Final.Guess values for the appropriate match level
+#what are you defining as base line- max Final.Guess for each level
+single_matches <- join(single_matches, org_df)
+baseline <- ddply(single_matches, .(genus, match), summarize, min = min(Final.Guess), median = mean(Final.Guess),max = max(Final.Guess), p90 = quantile(Final.Guess, probs=0.9))
+```
+
+
+```{r}
+#comparison of shared taxonomic levels, final guess- with contaminants
+```
+```{r}
+# need to have read counts for the different org and contributions to the datasets
+# parse the readId files and count the number of reads based on the NC_####
 ```
 
 
@@ -62,8 +90,8 @@ Method validation for biodetection technologies requires high purity test materi
 # Introduction
 *Need new background introduction paragraph*     
 There are a number of potential sources for contamination of test materials with other microorganisms, including the stock culture, the preservation medium, as well as airborne and laboratory contaminants.  While high levels of contamination may be more easily identified, a rigorous and systematic approach is often needed to detect lower levels of contamination.  For example, a purified culture of Geobacter sulfurreducens strain KN400 over 20 years old was found to have low levels of contamination of Geobacter sulfurreducens strain DL1 [8].   However, the KN400 genome was sequenced using next–generation sequencing with 80 X coverage without identification of the contaminant.  The contaminant was first detected using a selective culturing system.  After initial identification of the contaminant, the concentration of the contaminant was determined using polymerase chain reaction (PCR) and next generation sequencing for the OmcS gene, which contained a 14 bp difference between the contaminant and culture strain.  From the PCR assay, the contaminant was determined to contribute 1 out of 105 copies of the OmcS gene with the remainder of the copies contributed by the main KN400 strain.  Once the contaminant was identified, a systematic approach could then be used to identify the source of the contaminant, if desired. 
-Current methods for evaluating test material purity include PCR-based assays, metagenomics, and whole genome sequencing based approaches.  One PCR assay was developed to analyze protist cultures.  This PCR assay uses endpoint PCR for prokaryotes and eukaryotes with template dilutions [9].  The benefit to PCR-based approaches is that they can be cost effective and fast if an applicable protocol exists.   However, PCR assays can only target specific contaminants.  While PCR based assays can detect contaminants, this approach does not scale effectively for multiple, potentially unknown contaminants and test materials.
-The bioinformatics tools developed to identify contaminants in metagenomic datasets, which include sequencing data from all organisms in a sample, can also be used to evaluate test material purity.  For example DeconSeq [10] and a similar method QC-Chain [11] were developed to identify contaminants based on analysis of 16S ribosomal ribonucleic acid (rRNA) gene sequences or comparison of a subset of reads to a reference database using Basic local alignment search tool (BLAST).  Metagonomic-based methods such as these are able to identify contaminants without any prior knowledge or assumptions regarding the identity of the organism(s).  However, methods based on 16S rRNA gene identification have limited resolution, as 16S rRNA sequences can only provide genus level taxonomic resolution at best.  Methods using BLAST-based searches represent a broader scale approach but are limited by the accuracy of the BLAST classification method.   The benefit to using tools developed for metagenomics is that prior knowledge of the identity of the contaminant is not required; however this method is unable to identify contaminants to the strain level.
+Current methods for evaluating test material purity include PCR-based assays, metagenomics, and whole genome sequencing based approaches.  One PCR assay was developed to analyze protist cultures.  This PCR assay uses endpoint PCR for prokaryotes and eukaryotes with template dilutions [9].  The benefit to PCR-based approaches is that they can be cost effective and fast if an applicable protocol exists.   However, PCR assays can only target specific contaminants.  While PCR based assays can detect contaminants, this approach does not scale effectively for multiple, potentially unknown contaminants and test materials.   
+The bioinformatics tools developed to identify contaminants in metagenomic datasets, which include sequencing data from all organisms in a sample, can also be used to evaluate test material purity.  For example DeconSeq [10] and a similar method QC-Chain [11] were developed to identify contaminants based on analysis of 16S ribosomal ribonucleic acid (rRNA) gene sequences or comparison of a subset of reads to a reference database using Basic local alignment search tool (BLAST).  Metagonomic-based methods such as these are able to identify contaminants without any prior knowledge or assumptions regarding the identity of the organism(s).  However, methods based on 16S rRNA gene identification have limited resolution, as 16S rRNA sequences can only provide genus level taxonomic resolution at best.  Methods using BLAST-based searches represent a broader scale approach but are limited by the accuracy of the BLAST classification method.   The benefit to using tools developed for metagenomics is that prior knowledge of the identity of the contaminant is not required; however this method is unable to identify contaminants to the strain level.   
 Another approach to evaluating test material purity is through shotgun whole genome sequencing, which attempts to sequence all DNA in a sample.  A recently published bioinformatics method, pathoscope, was developed to detect pathogens and identify strains using whole genome sequencing data.  This method benefits from the large sample size obtained using next generation sequencing for higher sensitivity and leverages algorithm advances for whole genome sequence mapping.  Mapping algorithms determine the optimal placement of reads relative to a reference sequence.  Reads are either uniquely or ambiguously mapped.  For uniquely mapped reads only a single optimal mapping location is identified, whereas for ambiguously mapped reads multiple optimal mapping locations are identified.  Pathoscope uses the number of reads that uniquely map to different genomes in the reference database to assign ambiguously mapped reads, reads that align equally well to multiple reference sequences.  The primary benefits to the shotgun whole genome sequencing and subsequent pathoscope analysis approach are that prior knowledge of the contaminant is not required and it can potentially identify the contaminant to the strain level.  However, the main limitation to this method is the size of the reference database, namely that the genome of the contaminant or a closely related organism must be present in the database for the contaminant to be detected.
 Robust approaches to measure purity of microbial test materials used to validate biothreat detection assays will provide an increased confidence in the results from those assays.  In this work, we developed a novel method to measure the purity of single organism test materials.  This method is based on whole genome sequencing and utilizes pathoscope with an expanded reference database [12].  We will first present the specificity of the method using simulated data for single organisms.  Then, we will evaluate the limit of detection and quantitative accuracy of the method using simulated datasets generated to represent test materials contaminated at various levels.  
 
@@ -79,14 +107,16 @@ This bioinformatics approach to measuring test material purity consists of three
 To evaluate the specificity and sensitivity of the approach, simulated single organism as well as contaminated datasets (mixtures of two organisms) were generated.  The organisms used in the study included common biothreat agents and foodborne human pathogens (Table 1).  Simulated datasets were generated using the ART sequencing read simulator (Reference for ART).  The ART simulator used error models based on real sequence datasets to generate more realistic datasets.  The datasets were generated using the Illumina error models with paired end 75 and 250 base pair reads and 20 X mean coverage for each of the strains [13].
 
 Simulated whole genome sequencing datasets for `r length(unique(single_matches$input_filename))` organisms from  `r length(unique(org_df$genus))` different genus (Table 1) were used to evaluate the method specificity. Datasets from the individual organisms were mapped to the all-bacterial genomes database using bwa mem.  The resulting mapping file was processed using pathoscope.  The specificity of the individual organisms was evaluated at the strain to phylum level.
-```{r results='asis', echo=FALSE}
-print(xtable(org_table),type='html')
+```{r genus-table, results='asis', echo=FALSE}
+colnames(org_table) <- c("Genus", "Strains")
+org_table$Genus <- as.character(org_table$Genus)
+org_table2 <- rbind(org_table, c(Genus = "Total", Strains = sum(org_table$Strains)))
+print(xtable(org_table2),type='html')
 ```
 
-```{r echo=FALSE, results='hide'}
+```{r proportions, echo=FALSE, results='hide'}
 ## contaminat proportions
-##---###  Need to fix ### issue with last proportion
-proportions <- str_c(unique(contam_matches$prop1),unique(contam_matches$prop2), sep = ":")
+proportions <- str_c(unique(contam_matches$prop1),signif(1 - unique(contam_matches$prop1),2), sep = ":")
 ```
 
 To evaluate the method sensitivity, simulated datasets with a target strain and a contaminant strain were generated and evaluated.  The reads in the datasets were subsampled in the following proportions:`r proportions[-1]` and `r proportions[length(proportions)]` where the first number represents the percentage of reads randomly selected from the target organism dataset and the second number represents the number of reads randomly selected from the contaminant dataset.  For example, a proportion of 0.5:0.5, the combined dataset included a random subsampling of 50 % of the reads from the target organism dataset and 50 % of the reads from the contaminant organism dataset.  Datasets were generated for all pairwise comparisons so that each of the six organisms was both a contaminant and target organism for all possible combinations at all 9 proportions, for a total of `r length(unique(contam_matches$input_filename))`  combinations.  The individual organism datasets vary in the number of reads in the due to differences in genome size, such that 50 % of one dataset will be a different absolute number of reads than 50 % of another dataset.   
@@ -110,7 +140,6 @@ qplot(x = Final.Guess, data = single_matches, geom= "bar") + scale_x_log10() + t
 The 90 % of the hits have a Final.Guess values of less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  
 
 ```{r echo=FALSE, message=FALSE}
-single_matches <- join(single_matches, org_df)
 single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
 ```
 The proportion of the values for Final.Guess is dependent on the match level and the genus of the target organims.  
@@ -118,13 +147,22 @@ The proportion of the values for Final.Guess is dependent on the match level and
 First two provide evidence regarding the taxonomic limit to which the method is able to identify contaminants
 Use this first part to establish a baseline for the noise level - at what final guess cutoff are most if not all not exact matches removed  - look at by genus and size
 
+```{r echo=FALSE, message=FALSE, fig.width=12}
+single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
+sim_quant <- ddply(single_matches, .(genus,match,size),summarize, p90 = quantile(Final.Guess, probs=0.9))
+ggplot(sim_quant) + geom_line(aes(x = as.numeric(match), y = p90, color = genus)) + scale_y_log10() + scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + facet_wrap(~size) + theme_bw()
+```
+
 ### Sensitivity
 ```{r echo=FALSE, message=FALSE}
 sim_unique_counts <- ddply(contam_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
+sim_unique_counts$name <- single_matches$name[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
+sim_unique_counts$genus <- single_matches$genus[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
+
 ggplot(sim_unique_counts) + 
   geom_boxplot(aes(x = size, y = count), color = "grey") +
-  geom_point(aes(x = size, y = count, color = org1_tid), size = 4) + 
-  geom_line(aes(x = as.numeric(size), y = count, color = org1_tid)) +
+  geom_point(aes(x = size, y = count, color = name), size = 4) + 
+  geom_line(aes(x = as.numeric(size), y = count, color = name)) +
   labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
   theme_bw()
 ```
@@ -141,17 +179,47 @@ Note- that the contaminated dataset counts are based on the unqiue matches for 6
 sim_LOD <- ddply(.data=contam_matches[grep("org2",contam_matches$match),],
                  .variables=.(size, org1_tid, org2_tid, org2_match), 
                  summarize, LOD = min(prop2))
-sim_LOD$org2_match <- factor(sim_LOD$org2_match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
+sim_LOD$match <- factor(sim_LOD$org2_match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
+sim_LOD$name <- single_matches$name[match(sim_LOD$org1_tid, single_matches$org_tid)]
+sim_LOD$genus <- single_matches$genus[match(sim_LOD$org1_tid, single_matches$org_tid)]
+sim_LOD <- join(sim_LOD, org_taxa_share)
 ```
 Limit of detection is defined as the proportion of contaminants with the lowest proportion.  The contaminant proportion is representative of the proprotion of the sample and not the proportion of reads.
-```{r fig.width=12}
+
+
+```{r }
+#creating baseline dataset for org1 org2 pairs
+#base line defined as the max Final.Guess value in the simulated dataset for org1 genus as the shared taxa level
+org_taxa_share$genus <- single_matches$genus[match(org_taxa_share$org1_tid, single_matches$org_tid)]
+
+org_share_base <- join(org_taxa_share,baseline, type="inner")
+
+sim_LOD$genus <- single_matches$genus[match(sim_LOD$org1_tid, single_matches$org_tid)]
+
+org_share_base$org1_tid <- factor(org_share_base$org1_tid)
+org_share_base$org2_tid <- factor(org_share_base$org2_tid)
+ggplot(org_share_base) + 
+  #geom_point(aes(x = 1, y = median, color = match), shape = 3, size = 3) +
+  #geom_linerange(aes(x = size,ymax = max, ymin = min ), color = "grey") +
+  geom_hline(aes(yintercept = median, color = match)) +
+  geom_point(data = contam_matches[grep("org2", contam_matches$match),], 
+             aes(x = size, y = prop2, color = org2_match), position = position_dodge(width=1)) + 
+  scale_y_log10() + 
+  #scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + 
+  labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + 
+  facet_grid(org1_tid~org2_tid) + 
+  theme_bw()
+
+
 ggplot(sim_LOD) + 
-  geom_bar(aes(x = org1_tid, y = LOD, fill = size), stat = "identity", position = position_dodge(width = 1.5), width = 0.75) + 
-  geom_hline(aes(yintercept = c(0.01, 0.0001, 0.0000025)), linetype = 2) + 
-  facet_grid(~org2_tid, scale = "free_x") + scale_y_log10() +   
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=-90)) +
-  labs(x = "Target Organism", fill = "Read Size (bp)", y = "Limit of Detection")
+  geom_point(aes(x = org2_tid, y = LOD, color = org2_tid)) + 
+  geom_point(aes(x = match, y = median)) +
+  geom_linerange(aes(x = match,ymax = max, ymin = min )) +
+  scale_y_log10() + 
+#  #scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + 
+ # labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + 
+  facet_grid(size~genus) + 
+  theme_bw()
 ```
 Matches at any level to the contaminant genome.
 
