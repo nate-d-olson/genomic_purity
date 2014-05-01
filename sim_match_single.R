@@ -36,6 +36,12 @@ single_org_match <- function (inputfile) {
     path_matches$org_tid[path_matches$input_filename == i] <- taxid 
   }
   rm(orgs)
+  
+  # Adding values for uid entries removed from the database
+  path_matches$org_tid[path_matches$input_filename == "212974"] <- 1271864
+  path_matches$org_tid[path_matches$input_filename == "218006"] <- 1320309
+  path_matches$org_tid[path_matches$input_filename == "57779"] <-511145
+  
   #get match taxid
   matches <- unique(path_matches$Genome)
   for(i in matches){
@@ -69,13 +75,13 @@ single_org_match <- function (inputfile) {
   return(path_matches)
 }
 
-single_mix_matches <- single_org_match(inputfile="simulated_single.csv")
-write.csv(single_mix_matches,str_c(path_results_directory,"sim_single_matches.csv", sep="/"), row.names = F)
+#single_mix_matches <- single_org_match(inputfile="simulated_single.csv")
+#write.csv(single_mix_matches,str_c(path_results_directory,"sim_single_matches.csv", sep="/"), row.names = F)
 
-BA_matches <- single_org_match(inputfile="simulated_BA.csv")
-write.csv(BA_matches,str_c(path_results_directory,"sim_BA_matches.csv", sep="/"), row.names = F)
+#BA_matches <- single_org_match(inputfile="simulated_BA.csv")
+#write.csv(BA_matches,str_c(path_results_directory,"sim_BA_matches.csv", sep="/"), row.names = F)
 
-EC_matches <- single_org_match(inputfile="simulated_EC.csv")
-write.csv(EC_matches,str_c(path_results_directory,"sim_EC_matches.csv", sep="/"), row.names = F)
+all_single_matches <- single_org_match(inputfile="simulated_EC.csv")
+write.csv(all_single_matches,str_c(path_results_directory,"sim_single_matches.csv", sep="/"), row.names = F)
 
 
