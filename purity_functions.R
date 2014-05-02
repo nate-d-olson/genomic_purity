@@ -11,3 +11,26 @@ unique_count_plot <- function (df) {
     facet_wrap(~genus)
   return(sim_plot)
 }
+
+applyfilter <- function(org1, Genome, Final.Guess, size){  
+  if(Genome %in% single_matches$Genome[single_matches$org == org1 & single_matches$size == size]){
+    if(Final.Guess < 10*single_matches$Final.Guess[single_matches$org == org1 & 
+                                                   single_matches$Genome == Genome & 
+                                                   single_matches$size ==size]){
+      return(0)
+    }
+    return(1)
+  }
+  return(1)
+}
+
+# subtracting single org hits 
+#if Genome in single dataset and final genome in contam less than 10*Final.Guess in single remove from contam dataset
+filter_noise <- function(single_matches, contam_matches){
+  contam_filt <- ddply(contam_matches, 
+                .(org1,Genome,input_filename, Final.Guess, size), 
+                transform, 
+                filtered=applyfilter(org1, Genome, Final.Guess,size)) 
+  return(contam_filt[contam_filt$filter == 1,])
+}
+

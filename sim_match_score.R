@@ -88,7 +88,7 @@ rm(genome_hits, i, match_level,hits)
 ## match reporting
 # keeping lowest
 path_matches$match <- "no match"
-for(i in rev(c("domain","kingdom","phylum","class","order","family","genus","species","exact"))){
+for(i in rev(c("phylum","class","order","family","genus","species","exact"))){
   path_matches$match[path_matches$org2_match == i] <- str_c(i, "org2", sep = " ") 
   path_matches$match[path_matches$org1_match == i] <- str_c(i, "org1", sep = " ") 
 }
