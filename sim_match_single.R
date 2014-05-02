@@ -57,6 +57,21 @@ single_org_match <- function (inputfile) {
   path_matches$match_tid[path_matches$Genome == "gi|538397725|ref|NC_022248.1|"] <- 1320309
   path_matches$match_tid[path_matches$Genome == "gi|525826475|ref|NC_021812.1|"] <- 1271864
   
+  #other no matches
+  path_matches$match_tid[path_matches$Genome == "gi|529985600|ref|NC_021232.1|"] <- 573
+  path_matches$match_tid[path_matches$Genome == "gi|541862390|ref|NC_022268.1|"] <- 104623
+  path_matches$match_tid[path_matches$Genome == "gi|529974880|ref|NC_021231.1|"] <- 573
+  path_matches$match_tid[path_matches$Genome == "gi|530600370|ref|NC_022080.1|"] <- 1345697
+  path_matches$match_tid[path_matches$Genome == "gi|479134154|ref|NC_021004.1|"] <- 869312
+  path_matches$match_tid[path_matches$Genome == "gi|383843665|ref|NC_017174.1|"] <- 699035
+  path_matches$match_tid[path_matches$Genome == "gi|264676136|ref|NC_013446.1|"] <- 688245
+  path_matches$match_tid[path_matches$Genome == "gi|525819445|ref|NC_021813.1|"] <- 1271864
+  path_matches$match_tid[path_matches$Genome == "gi|56694928|ref|NC_003911.11|"] <- 246200
+  path_matches$match_tid[path_matches$Genome == "gi|49175990|ref|NC_000913.2|"] <- 511145
+  path_matches$match_tid[path_matches$Genome == "gi|525933207|ref|NC_021842.1|"] <- 1271864
+  path_matches$match_tid[path_matches$Genome == "gi|479134147|ref|NC_021003.1|"] <- 869311
+  path_matches$match_tid[path_matches$Genome == "gi|77404592|ref|NC_007488.1|" ] <- 272943
+  
   #finding match level
   ## need to find a way to make unique set not just strings
   genome_hits <- unique(str_c(path_matches$match_tid, path_matches$org_tid, sep = "_"))

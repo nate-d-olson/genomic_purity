@@ -19,55 +19,53 @@ contam_matches <- read.csv(str_c(path_results_directory,"/sim_contam_matches.csv
 for(i in c("org1_tid","org2_tid","size")){
   contam_matches[,i] <- as.factor(contam_matches[,i])
 }
+single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
 ```
-```{r org_names, echo=FALSE, message=FALSE}
+
+```{r org_names, echo=FALSE, message=FALSE, cache=TRUE}
 org_tid <- unique(single_matches$org_tid)
 org_name <- c()
-#org_species <- c()
 org_genus <- c()
 for(i in org_tid){
-  
   org_name <- c(org_name,python.call("getNameByTaxid", i))
   org_taxa <- GetTaxInfoLocal(i)
   org_taxa <- org_taxa[org_taxa$tid != 131567,]
-  #org_species <- c(org_species, as.character(org_taxa$name[org_taxa$rank == "species"][1]))
   org_genus <- c(org_genus, as.character(org_taxa$name[org_taxa$rank == "genus"][1]))
 }
 org_df <- data.frame(org_tid, name = org_name, genus = org_genus) #species = org_species, 
 org_table <- dcast(org_df,genus~.)
-```
-```{r contam-match-levels, echo=FALSE, message=FALSE}
-#match table taxonomic names find lowest shared common taxonomic level
-org_sets <- combn(as.numeric(levels(contam_matches$org1_tid)), m = 2, simplify=F)
-org_taxa_share <- ldply(org_sets,function(x){GetMatchLevel(id1 =x[1], id2= x[2])})
-org_taxa_share <- cbind(org_taxa_share, ldply(org_sets))
-colnames(org_taxa_share) <- c("match", "org1_tid","org2_tid")
-org_taxa_share2 <- data.frame(match = org_taxa_share$match, 
-                              org1_tid = org_taxa_share$org2_tid,
-                              org2_tid = org_taxa_share$org1_tid)
-org_taxa_share <- rbind(org_taxa_share, org_taxa_share2)
-```
-
-```{r baselines, echo=FALSE, message=FALSE}
-#baseline values
-#from single matches get the Final.Guess values for the appropriate match level
-#what are you defining as base line- max Final.Guess for each level
 single_matches <- join(single_matches, org_df)
-baseline <- ddply(single_matches, .(genus, match), summarize, min = min(Final.Guess), median = mean(Final.Guess),max = max(Final.Guess), p90 = quantile(Final.Guess, probs=0.9))
 ```
 
-
-```{r}
-#comparison of shared taxonomic levels, final guess- with contaminants
+```{r genus-table, results='hide', echo=FALSE}
+colnames(org_table) <- c("Genus", "Strains")
+org_table$Genus <- as.character(org_table$Genus)
+org_table2 <- rbind(org_table, c(Genus = "Total", Strains = sum(org_table$Strains)))
 ```
-```{r}
-# need to have read counts for the different org and contributions to the datasets
-# parse the readId files and count the number of reads based on the NC_####
+
+```{r proportions, echo=FALSE, results='hide'}
+## contaminat proportions
+proportions <- str_c(unique(contam_matches$prop1),signif(1 - unique(contam_matches$prop1),2), sep = ":")
+```
+
+```{r sim-unique-counts, echo=FALSE, results='hide'}
+sim_unique_counts <- ddply(contam_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
+sim_unique_counts$name <- single_matches$name[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
+sim_unique_counts$genus <- single_matches$genus[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
+```
+
+```{r filtered-contam, echo=FALSE, results='hide', cache=TRUE}
+contam_filtered <- filter_noise(single_matches, contam_matches)
 ```
 
 
 Outline for ASM poster on validating test material purity
 ========================================================
+# TODO
+Check single_matches and contam matches for -1 in org_tids and NA in matches
+Check for multiple entries in the single org datasets
+make supplemental material table with complete list of single organisms
+
 # Header
 ## Title   
 Development of methods for using the pathoscope sequence analysis software to validate microbial test material purity.
@@ -108,15 +106,7 @@ To evaluate the specificity and sensitivity of the approach, simulated single or
 
 Simulated whole genome sequencing datasets for `r length(unique(single_matches$input_filename))` organisms from  `r length(unique(org_df$genus))` different genus (Table 1) were used to evaluate the method specificity. Datasets from the individual organisms were mapped to the all-bacterial genomes database using bwa mem.  The resulting mapping file was processed using pathoscope.  The specificity of the individual organisms was evaluated at the strain to phylum level.
 ```{r genus-table, results='asis', echo=FALSE}
-colnames(org_table) <- c("Genus", "Strains")
-org_table$Genus <- as.character(org_table$Genus)
-org_table2 <- rbind(org_table, c(Genus = "Total", Strains = sum(org_table$Strains)))
 print(xtable(org_table2),type='html')
-```
-
-```{r proportions, echo=FALSE, results='hide'}
-## contaminat proportions
-proportions <- str_c(unique(contam_matches$prop1),signif(1 - unique(contam_matches$prop1),2), sep = ":")
 ```
 
 To evaluate the method sensitivity, simulated datasets with a target strain and a contaminant strain were generated and evaluated.  The reads in the datasets were subsampled in the following proportions:`r proportions[-1]` and `r proportions[length(proportions)]` where the first number represents the percentage of reads randomly selected from the target organism dataset and the second number represents the number of reads randomly selected from the contaminant dataset.  For example, a proportion of 0.5:0.5, the combined dataset included a random subsampling of 50 % of the reads from the target organism dataset and 50 % of the reads from the contaminant organism dataset.  Datasets were generated for all pairwise comparisons so that each of the six organisms was both a contaminant and target organism for all possible combinations at all 9 proportions, for a total of `r length(unique(contam_matches$input_filename))`  combinations.  The individual organism datasets vary in the number of reads in the due to differences in genome size, such that 50 % of one dataset will be a different absolute number of reads than 50 % of another dataset.   
@@ -132,125 +122,51 @@ unique_count_plot(single_matches)
 For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads. 
 The number of matches is dependent on the genetic diversity of the genus/ species for the target organism.
 
-### Predicting a base line level for contaminat detection.
 Overall distribition of Final.Guess values.  Final.Guess is the proprotion of the total number of aligned reads to the number of a reads assinged to a genome in the reference database.
 ```{r echo=FALSE, message=FALSE}
 qplot(x = Final.Guess, data = single_matches, geom= "bar") + scale_x_log10() + theme_bw()
 ```
 The 90 % of the hits have a Final.Guess values of less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  
 
-```{r echo=FALSE, message=FALSE}
-single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
-```
 The proportion of the values for Final.Guess is dependent on the match level and the genus of the target organims.  
 
-First two provide evidence regarding the taxonomic limit to which the method is able to identify contaminants
-Use this first part to establish a baseline for the noise level - at what final guess cutoff are most if not all not exact matches removed  - look at by genus and size
-
 ```{r echo=FALSE, message=FALSE, fig.width=12}
-single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
+#line plot showing Final.Gues relationship with match level read size and genus for single organisms
 sim_quant <- ddply(single_matches, .(genus,match,size),summarize, p90 = quantile(Final.Guess, probs=0.9))
 ggplot(sim_quant) + geom_line(aes(x = as.numeric(match), y = p90, color = genus)) + scale_y_log10() + scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + facet_wrap(~size) + theme_bw()
 ```
 
-### Sensitivity
+## Sensitivity
 ```{r echo=FALSE, message=FALSE}
-sim_unique_counts <- ddply(contam_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
-sim_unique_counts$name <- single_matches$name[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
-sim_unique_counts$genus <- single_matches$genus[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
-
 ggplot(sim_unique_counts) + 
   geom_boxplot(aes(x = size, y = count), color = "grey") +
-  geom_point(aes(x = size, y = count, color = name), size = 4) + 
-  geom_line(aes(x = as.numeric(size), y = count, color = name)) +
+  geom_point(aes(x = size, y = count, color = org1_tid), size = 4) + 
+  geom_line(aes(x = as.numeric(size), y = count, color = org1_tid)) +
   labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
   theme_bw()
 ```
-### Observations: 
 Between 50 and 200 unique organism hits for each of the dataset combinations.  The difference in the number of unique matches has a much larger decrease compared to single organisms.  
-Questions:  
-1. can ask similar questions to single organisms   
-2. how do the unique matches compare for single and contaminanted datasets.    
-Note- that the contaminated dataset counts are based on the unqiue matches for 64 datasets, 6 contaminants and 9 mixtures.  
 
-
-#### LOD by organism and contaminant
-```{r echo=FALSE, message=FALSE}
-sim_LOD <- ddply(.data=contam_matches[grep("org2",contam_matches$match),],
-                 .variables=.(size, org1_tid, org2_tid, org2_match), 
-                 summarize, LOD = min(prop2))
-sim_LOD$match <- factor(sim_LOD$org2_match, levels = c("exact", "species", "genus","family","order","class", "phylum"))
-sim_LOD$name <- single_matches$name[match(sim_LOD$org1_tid, single_matches$org_tid)]
-sim_LOD$genus <- single_matches$genus[match(sim_LOD$org1_tid, single_matches$org_tid)]
-sim_LOD <- join(sim_LOD, org_taxa_share)
+To hits to the single organism simulated datasets were removed from the contaminant datasets if the Final.Guess for the hit was less than 10 times the Final.Guess for the single organism.
+Plot showing the number of hits for the simualted contamined datasets.
+```{r}
+#other factor is the org2 proportions
+ggplot(contam_filtered) + geom_bar(aes(x = org2_tid, fill = match)) + facet_grid(org1_tid~size) 
+ggplot(contam_filtered[contam_filtered$org2_match == "exact",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
+ggplot(contam_filtered[contam_filtered$org2_match == "species",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
 ```
-Limit of detection is defined as the proportion of contaminants with the lowest proportion.  The contaminant proportion is representative of the proprotion of the sample and not the proportion of reads.
-
-
-```{r }
-#creating baseline dataset for org1 org2 pairs
-#base line defined as the max Final.Guess value in the simulated dataset for org1 genus as the shared taxa level
-org_taxa_share$genus <- single_matches$genus[match(org_taxa_share$org1_tid, single_matches$org_tid)]
-
-org_share_base <- join(org_taxa_share,baseline, type="inner")
-
-sim_LOD$genus <- single_matches$genus[match(sim_LOD$org1_tid, single_matches$org_tid)]
-
-org_share_base$org1_tid <- factor(org_share_base$org1_tid)
-org_share_base$org2_tid <- factor(org_share_base$org2_tid)
-ggplot(org_share_base) + 
-  #geom_point(aes(x = 1, y = median, color = match), shape = 3, size = 3) +
-  #geom_linerange(aes(x = size,ymax = max, ymin = min ), color = "grey") +
-  geom_hline(aes(yintercept = median, color = match)) +
-  geom_point(data = contam_matches[grep("org2", contam_matches$match),], 
-             aes(x = size, y = prop2, color = org2_match), position = position_dodge(width=1)) + 
-  scale_y_log10() + 
-  #scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + 
-  labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + 
-  facet_grid(org1_tid~org2_tid) + 
-  theme_bw()
-
-
-ggplot(sim_LOD) + 
-  geom_point(aes(x = org2_tid, y = LOD, color = org2_tid)) + 
-  geom_point(aes(x = match, y = median)) +
-  geom_linerange(aes(x = match,ymax = max, ymin = min )) +
-  scale_y_log10() + 
-#  #scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + 
- # labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + 
-  facet_grid(size~genus) + 
-  theme_bw()
+```{r}
+contam_LOD <- ddply(contam_filtered,.(org1_tid,org2_tid, size, org2_match), summarize, LOD = min(prop2))
+ggplot(contam_LOD) + geom_raster(aes(x = size, y = as.factor(LOD))) + facet_grid(org1_tid~org2_tid) 
 ```
-Matches at any level to the contaminant genome.
-
-```{r message=FALSE, fig.height=6, fig.width=18}
-ggplot(sim_LOD) + 
-  geom_point(aes(x = org1_tid, y= LOD, color = org2_match),alpha = 0.75, position = position_dodge(width = 0.5), size = 3) +
-  geom_line(aes(x = org1_tid, y = LOD)) +
-  labs(linetype = "Read Size (bp)", x = "Match Level") + 
-  scale_y_log10() + 
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=-90)) +
-  facet_grid(size~org2_tid, scale = "free")
-```
-```{r echo=FALSE, message=FALSE}
-LOD_table <-dcast(sim_LOD,org2_tid*org1_tid~org2_match*size, value.var = "LOD", fill= "")
-```
-```{r results='asis', echo=FALSE}
- library(xtable)
-  print(xtable(LOD_table),type='html')
+```{r}
+contam_unique <- ddply(contam_filtered, .(org1_tid,org2_tid, Genome, match_tid,org2_match,size), summarize, count = length(prop2))
+ggplot(contam_unique) + geom_bar(aes(x = org2_tid, fill = org2_match)) + facet_grid(size~org1_tid)
 ```
 
-Observations: For a number of combinations the limit of detection is lower for 75 bp compared to 250 bp simulated datasets.  Need to look into the data to make sure this is not due to a bug in the code.
 
 
-number of unique hit by read size
-	how do the number of unqiue hits compare to the sum of the unique hits for the individual organisms?
-LOD for exact matches
-	how do the LODs compare within target organisms and among contaminants
-	x = target, y = contaminant ????
-	LOD by target and contaminant pair
-	how do the LODs compare the the baseline noise levels 
+
 
 # Conclusions
 Suitablility of the methods for characterizing target materials
