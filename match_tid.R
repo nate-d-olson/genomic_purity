@@ -19,8 +19,6 @@ GetTaxInfoLocal <- function(ids){
 
 CompareTaxInfoLocal <- function(id1, id2){
     require(plyr)
-    if (length(id1) != 1 | length(id2) != 1) 
-      stop("Error: One item sep by columns please.")
     g1 <- GetTaxInfoLocal(id1)
     g2 <- GetTaxInfoLocal(id2)
     common <- join(x=g1, y=g2, by= "tid", type="inner")
@@ -42,8 +40,7 @@ GetNameFromTaxid <- function(tid){
 }
 
 GetMatchLevel <- function(id1, id2){
-  matches <- CompareTaxInfoLocal(id1, id2)
-  
+  matches <- CompareTaxInfoLocal(id1, id2) 
   #all pairs share this same match - not sure where the error is ...
   matches <- matches[matches$tid != 131567,]
   for(level in rev(c("domain","kingdom","phylum","class","order","family","genus","species")))

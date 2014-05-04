@@ -6,56 +6,114 @@ library(stringr)
 library(reshape2)
 library(plyr)
 library(xtable)
-library(combinat)
 source("purity_functions.R")
 source("file_locations.R")
 source("match_tid.R")
+```
+
+```{r load-data, echo = FALSE, message=FALSE, results='hide'}
+#removing unused columns
+clean_match_df <- function(match_df){
+  return(subset(match_df, select = -c(Final.Best.Hit, 
+                                      Final.High.Confidence.Hits, 
+                                      Final.Low.Confidence.Hits, 
+                                      Initial.Guess, 
+                                      Initial.Best.Hit, 
+                                      Initial.Best.Hit.Read.Numbers, 
+                                      Initial.High.Confidence.Hits, 
+                                      Initial.Low.Confidence.Hits)))
+}
 
 #loading single organisms datasets
 single_matches <- read.csv(str_c(path_results_directory,c("/sim_single_matches.csv"), sep=""), stringsAsFactors = F)
+single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
+single_matches <- clean_match_df(single_matches)
+
 
 #loading simualted contaminant datasets
 contam_matches <- read.csv(str_c(path_results_directory,"/sim_contam_matches.csv", sep=""), stringsAsFactor = F)
 for(i in c("org1_tid","org2_tid","size")){
   contam_matches[,i] <- as.factor(contam_matches[,i])
 }
-single_matches$match <- factor(single_matches$match, levels = c("exact", "species", "genus","family","order","class", "phylum","no match"))
+contam_matches <- clean_match_df(contam_matches)
 ```
 
 ```{r org_names, echo=FALSE, message=FALSE, cache=TRUE}
-org_tid <- unique(single_matches$org_tid)
-org_name <- c()
-org_genus <- c()
-for(i in org_tid){
-  org_name <- c(org_name,python.call("getNameByTaxid", i))
-  org_taxa <- GetTaxInfoLocal(i)
-  org_taxa <- org_taxa[org_taxa$tid != 131567,]
-  org_genus <- c(org_genus, as.character(org_taxa$name[org_taxa$rank == "genus"][1]))
-}
-org_df <- data.frame(org_tid, name = org_name, genus = org_genus) #species = org_species, 
-org_table <- dcast(org_df,genus~.)
+# Getting organsim and name and genus for matches and single organisms
+org_df <- genusNameTable(unique(single_matches$org_tid))
 single_matches <- join(single_matches, org_df)
+single_matches <- rename(single_matches, c("name" = "target_name",
+                                           "genus" = "target_genus"))
+
+org_match_df <- genusNameTable(unique(c(contam_matches$match_tid, single_matches$match_tid)))
+org_match_df <- rename(org_match_df,replace = c("org_tid" = "match_tid",
+                                                 "name" = "match_name",
+                                                 "genus" = "match_genus"))
+contam_matches <- join(contam_matches, org_match_df)
+single_matches <- join(single_matches, org_match_df)
 ```
 
-```{r genus-table, results='hide', echo=FALSE}
+```{r genus-table, results='hide', echo=FALSE, message=FALSE}
+#modifying org_df for single dataset genus summary table
+org_table <- dcast(org_df, genus~.)
 colnames(org_table) <- c("Genus", "Strains")
 org_table$Genus <- as.character(org_table$Genus)
 org_table2 <- rbind(org_table, c(Genus = "Total", Strains = sum(org_table$Strains)))
 ```
 
 ```{r proportions, echo=FALSE, results='hide'}
-## contaminat proportions
+## contaminat proportions - for text
 proportions <- str_c(unique(contam_matches$prop1),signif(1 - unique(contam_matches$prop1),2), sep = ":")
 ```
 
 ```{r sim-unique-counts, echo=FALSE, results='hide'}
+## Summary of single dataset match counts
 sim_unique_counts <- ddply(contam_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
 sim_unique_counts$name <- single_matches$name[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
 sim_unique_counts$genus <- single_matches$genus[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
 ```
 
 ```{r filtered-contam, echo=FALSE, results='hide', cache=TRUE}
-contam_filtered <- filter_noise(single_matches, contam_matches)
+#echo=FALSE, results='hide', cache=TRUE
+## Removing hit to single organisms from contam matches dataset
+baseline_df <-  single_matches[single_matches$size == 250 & single_matches$org %in% unique(contam_matches$org1),] 
+contam_filtered_250 <- filter_noise(contam_matches[contam_matches$size == 250,])
+org_df$org2_tid <- org_df$org_tid
+contam_filtered_250 <- join(contam_filtered_250, org_df)
+contam_filtered_250 <- rename(contam_filtered_250, replace = c("name" = "contam_name",
+                                                               "genus" = "contam_genus"))
+```
+
+```{r single_counts_df, echo=FALSE, results='hide'}
+  single_counts <- ddply(single_matches, 
+                         .(org_tid, target_genus, size), 
+                         summarize, 
+                         genus_count = length(unique(match_genus)), 
+                         tid_counts = length(unique(match_tid)))
+  single_counts <- melt(single_counts,id.vars=c("org_tid", "target_genus", "size"))
+  single_counts$size <- as.factor(single_counts$size)
+```
+
+```{r org-labels, echo=FALSE}
+contam_names <- org_df[org_df$org_tid %in% as.character(unique(contam_matches$org2_tid)),]
+contam_names$ab_names <- c("S. aureus", "F. tularensis","Y. pestis","S. enterica LT2", "B. anthracis", "P. aeruginosa", "E. coli")
+contam_names$org2_tid <- NULL
+```
+
+```{r contam_genome_matches, echo=FALSE}
+contam_counts <- ddply(contam_filtered_250, 
+                       .(org1_tid, org2_tid, match_genus), 
+                       summarize, 
+                       counts =length(unique(match_tid)))
+contam_counts$org2_name <- org_names$ab_name[match(contam_counts$org2_tid,org_names$org_tid)]
+```
+
+```{r org-tid-labeller}
+org_names_list <- contam_names$ab_names
+names(org_names_list) <- contam_names$org_tid
+org_tid_labeller <- function(variable,value){
+  return(org_names_list[value])
+}
 ```
 
 
@@ -65,6 +123,8 @@ Outline for ASM poster on validating test material purity
 Check single_matches and contam matches for -1 in org_tids and NA in matches
 Check for multiple entries in the single org datasets
 make supplemental material table with complete list of single organisms
+workout adding taxa names to figures
+add org2 and org1 genus
 
 # Header
 ## Title   
@@ -105,7 +165,7 @@ This bioinformatics approach to measuring test material purity consists of three
 To evaluate the specificity and sensitivity of the approach, simulated single organism as well as contaminated datasets (mixtures of two organisms) were generated.  The organisms used in the study included common biothreat agents and foodborne human pathogens (Table 1).  Simulated datasets were generated using the ART sequencing read simulator (Reference for ART).  The ART simulator used error models based on real sequence datasets to generate more realistic datasets.  The datasets were generated using the Illumina error models with paired end 75 and 250 base pair reads and 20 X mean coverage for each of the strains [13].
 
 Simulated whole genome sequencing datasets for `r length(unique(single_matches$input_filename))` organisms from  `r length(unique(org_df$genus))` different genus (Table 1) were used to evaluate the method specificity. Datasets from the individual organisms were mapped to the all-bacterial genomes database using bwa mem.  The resulting mapping file was processed using pathoscope.  The specificity of the individual organisms was evaluated at the strain to phylum level.
-```{r genus-table, results='asis', echo=FALSE}
+```{r genus-xtable, results='asis', echo=FALSE}
 print(xtable(org_table2),type='html')
 ```
 
@@ -115,57 +175,69 @@ To generate the simulated mapping datasets, the mapping files for the individual
 All of the scripts used in the study are available at https://github.com/nate-d-olson/genomic_purity. 
 
 # Results and Discussion
-## Specificity
-```{r }
-unique_count_plot(single_matches)
+## Specificity    
+The results from analyzing single organism datasets was analyzed to assess the specificity of the method.  Here specificity is defined as the methods ability of accuractely assign the reads to the appropriate organism.   
+```{r single-counts-plot, echo=FALSE, fig.width = 10, fig.height=15}
+#need to order x axis species - genus
+ggplot(single_counts) + 
+    geom_line(aes(x = as.numeric(variable), y = value, color = as.character(org_tid)), 
+              alpha = 0.5, show_guide = F) +
+    geom_point(aes(x = as.numeric(variable), y = value, color = as.character(org_tid)), 
+               size = 4, alpha = 0.5, show_guide = F) + 
+    scale_x_continuous(breaks = 1:length(levels(single_counts$variable)), 
+                       labels = c("Genus", "Strain")) +
+    labs(x = "Match Level", y = "Number of unqiue hits", color = "Target\nGenus")+
+    theme_bw() +
+    facet_grid(target_genus~size) +
+    theme(strip.text.y = element_text(face="italic"))
 ```
-For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads. 
-The number of matches is dependent on the genetic diversity of the genus/ species for the target organism.
-
-Overall distribition of Final.Guess values.  Final.Guess is the proprotion of the total number of aligned reads to the number of a reads assinged to a genome in the reference database.
-```{r echo=FALSE, message=FALSE}
-qplot(x = Final.Guess, data = single_matches, geom= "bar") + scale_x_log10() + theme_bw()
+For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads. The number of matches is dependent on the genetic diversity of the genomes within the genus in the database. Genus with greater diversity will have fewer unique hits as fewer reads map incorectly to other genomes.    
+#$# Note to self - should I test the impact of genetic diversity on number of unique counts and if so how?
+```{r single-specificity-plot, echo=FALSE}
+ggplot(single_counts[single_counts$size == 250,]) + 
+  geom_density(aes(x = value, fill = variable), alpha = 0.25) +
+  labs(x = "Numer of unique counts", 
+       y = "Proportion of Total Counts", 
+       fill = "Match Level") +
+  theme_bw() 
 ```
-The 90 % of the hits have a Final.Guess values of less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  
+The number of unique genus level matches for 250 bp simulated datasets provide a level of specificty that will allow for detection of contaminants in test materials with 99 % of target organisms having `r quantile(single_counts$value[single_counts$size == 250 & single_counts$variable == "genus_count"],probs=0.99)` or few unique genus level matches.   
 
-The proportion of the values for Final.Guess is dependent on the match level and the genus of the target organims.  
+Overall distribition of Final.Guess values.  Final.Guess is the proprotion of the total number of aligned reads to the number of a reads assinged to a genome in the reference database. The 90 % of the hits have a Final.Guess values of less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  For most of the matched only a small fraction of the reads are mapped to the match organisms genome in the reference database.   
 
-```{r echo=FALSE, message=FALSE, fig.width=12}
-#line plot showing Final.Gues relationship with match level read size and genus for single organisms
-sim_quant <- ddply(single_matches, .(genus,match,size),summarize, p90 = quantile(Final.Guess, probs=0.9))
-ggplot(sim_quant) + geom_line(aes(x = as.numeric(match), y = p90, color = genus)) + scale_y_log10() + scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + facet_wrap(~size) + theme_bw()
+```{r final-guess-hist, echo=FALSE, message=FALSE}
+qplot(x = Final.Guess, data = single_matches, geom= "bar") + scale_x_log10() + theme_bw() + labs(x = "Estimated Proportions", y = "Abundance")
 ```
 
 ## Sensitivity
-```{r echo=FALSE, message=FALSE}
-ggplot(sim_unique_counts) + 
-  geom_boxplot(aes(x = size, y = count), color = "grey") +
-  geom_point(aes(x = size, y = count, color = org1_tid), size = 4) + 
-  geom_line(aes(x = as.numeric(size), y = count, color = org1_tid)) +
-  labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
-  theme_bw()
-```
-Between 50 and 200 unique organism hits for each of the dataset combinations.  The difference in the number of unique matches has a much larger decrease compared to single organisms.  
+The sensitivity of the method was evaluated by on the methods ability to detect the in silico contaminant spiked in at different proportions.  Sensitivity was assessed for 250 bp reads and the genus of the reference organisms the mapped reads were assigned to.  
+### species and strain level evaluation of the matches for the 250 bp and all match levels for the 75 bp datasets- the specificity of the method was too low.  Difficult to differentiate the noise from the contaminant signal.
 
-To hits to the single organism simulated datasets were removed from the contaminant datasets if the Final.Guess for the hit was less than 10 times the Final.Guess for the single organism.
-Plot showing the number of hits for the simualted contamined datasets.
-```{r}
-#other factor is the org2 proportions
-ggplot(contam_filtered) + geom_bar(aes(x = org2_tid, fill = match)) + facet_grid(org1_tid~size) 
-ggplot(contam_filtered[contam_filtered$org2_match == "exact",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
-ggplot(contam_filtered[contam_filtered$org2_match == "species",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
-```
-```{r}
-contam_LOD <- ddply(contam_filtered,.(org1_tid,org2_tid, size, org2_match), summarize, LOD = min(prop2))
-ggplot(contam_LOD) + geom_raster(aes(x = size, y = as.factor(LOD))) + facet_grid(org1_tid~org2_tid) 
-```
-```{r}
-contam_unique <- ddply(contam_filtered, .(org1_tid,org2_tid, Genome, match_tid,org2_match,size), summarize, count = length(prop2))
-ggplot(contam_unique) + geom_bar(aes(x = org2_tid, fill = org2_match)) + facet_grid(size~org1_tid)
+## Need an inital plot showing the number of genus matched for foreach org1 org2 pair or at least each org1
+```{r contam_genome_matches_plot, fig.width=10, fig.height=4, echo=FALSE}
+ggplot(contam_counts) + 
+  geom_raster(aes(x = org2_name, y = match_genus, fill = match_genus), show_guide = F) + 
+  facet_grid(~org1_tid, scale = "free_x", labeller = org_tid_labeller) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(x = "Contaminant Name", y= "Match Genus")
 ```
 
 
+```{r contam_LOD_fig, echo=FALSE}
+contam_genus_match <- contam_filtered_250[as.character(contam_filtered_250$match_genus) == as.character(contam_filtered_250$contam_genus),]
+contam_genus_match <- contam_genus_match[!is.na(contam_genus_match$Genome),]
+ggplot(contam_genus_match) + 
+  geom_raster(aes(x= as.factor(prop2), y = org2_tid, fill = match_genus)) + 
+  facet_grid(org1_tid~., scale = "free_y", labeller = org_tid_labeller) +
+  labs(x = "Contaminant Spike Level", 
+       y = "Contaminant Organsim", 
+       fill = "Contaminant Genus") +
+  theme_bw() +
+  theme(axis.text.y = element_blank(), strip.text.y = element_text(face="italic"), legend.position = "bottom", legend.direction="horizontal")
+```
 
+Even with baseline removal a number of hits to the target organisms genome
 
 
 # Conclusions
