@@ -12,25 +12,45 @@ unique_count_plot <- function (df) {
   return(sim_plot)
 }
 
-applyfilter <- function(org1, Genome, Final.Guess, size){  
-  if(Genome %in% single_matches$Genome[single_matches$org == org1 & single_matches$size == size]){
-    if(Final.Guess < 10*single_matches$Final.Guess[single_matches$org == org1 & 
-                                                   single_matches$Genome == Genome & 
-                                                   single_matches$size ==size]){
-      return(0)
-    }
-    return(1)
+
+## Register parallel backend
+#library(doParallel)
+#cl <- makeCluster(5)
+#registerDoParallel(cl)
+
+applyfilter <- function(org1, Genome, Final.Guess){  
+  baseline_genomes <- baseline_df$Genome[baseline_df$org == org1]
+  baseline_guess <- single_matches$Final.Guess[baseline_df$org == org1 & baseline_df$Genome == Genome]
+  if(Genome %in% baseline_genomes && Final.Guess < 10*baseline_guess ){
+    return(0)
   }
   return(1)
 }
 
 # subtracting single org hits 
 #if Genome in single dataset and final genome in contam less than 10*Final.Guess in single remove from contam dataset
-filter_noise <- function(single_matches, contam_matches){
-  contam_filt <- ddply(contam_matches, 
-                .(org1,Genome,input_filename, Final.Guess, size), 
+filter_noise <- function(toFilter_df){
+  contam_filt <- ddply(toFilter_df, 
+                .(org1,Genome,input_filename, Final.Guess), 
                 transform, 
-                filtered=applyfilter(org1, Genome, Final.Guess,size)) 
-  return(contam_filt[contam_filt$filter == 1,])
+                filtered=applyfilter(org1, Genome, Final.Guess)) #,
+                #.parallel = T) 
+                # parallel not working receiving the following error message
+                # warning message - <anonymous>: ... may be used in an incorrect context: ‘.fun(piece, ...)’
+                # filtered assigned 0 for all entries
+  contam_filt <- contam_filt[contam_filt$filtered == 1,]
+  contam_filt$filtered <- NULL
+  return(contam_filt)
 }
 
+genusNameTable <- function (tids) {
+  #idea to speed up adply?
+  org_name <- c()
+  org_genus <- c()
+  for(i in tids){
+    org_name <- c(org_name,python.call("getNameByTaxid", i))
+    org_taxa <- GetTaxInfoLocal(i)
+    org_genus <- c(org_genus, as.character(org_taxa$name[org_taxa$rank == "genus"][1]))
+  }
+  return(data.frame(org_tid = tids, name = org_name, genus = org_genus)) 
+}

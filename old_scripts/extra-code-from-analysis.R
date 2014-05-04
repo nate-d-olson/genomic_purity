@@ -91,3 +91,38 @@ LOD_table <-dcast(sim_LOD,org2_tid*org1_tid~org2_match*size, value.var = "LOD", 
 library(xtable)
 print(xtable(LOD_table),type='html')
 ```
+
+Plot showing the number of hits for the simualted contamined datasets.
+```{r}
+#other factor is the org2 proportions
+ggplot(contam_filtered) + geom_bar(aes(x = org2_tid, fill = match)) + facet_grid(org1_tid~size) 
+ggplot(contam_filtered[contam_filtered$org2_match == "exact",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
+ggplot(contam_filtered[contam_filtered$org2_match == "species",]) + geom_raster(aes(x = org2_tid, y = as.factor(prop2), fill = match)) + facet_grid(org1_tid~size) 
+```
+```{r}
+contam_LOD <- ddply(contam_filtered,.(org1_tid,org2_tid, size, org2_match), summarize, LOD = min(prop2))
+ggplot(contam_LOD) + geom_raster(aes(x = size, y = as.factor(LOD))) + facet_grid(org1_tid~org2_tid) 
+```
+```{r}
+contam_unique <- ddply(contam_filtered, .(org1_tid,org2_tid, Genome, match_tid,org2_match,size), summarize, count = length(prop2))
+ggplot(contam_unique) + geom_bar(aes(x = org2_tid, fill = org2_match)) + facet_grid(size~org1_tid)
+```
+The proportion of the values for Final.Guess is dependent on the match level and the genus of the target organims.  
+
+```{r single-line-plot, echo=FALSE, message=FALSE, fig.width=12}
+#line plot showing Final.Gues relationship with match level read size and genus for single organisms
+sim_quant <- ddply(single_matches, .(genus,match,size),summarize, p90 = quantile(Final.Guess, probs=0.9))
+ggplot(sim_quant) + geom_line(aes(x = as.numeric(match), y = p90, color = genus)) + scale_y_log10() + scale_x_continuous(breaks = 1:length(levels(sim_quant$match)), labels = levels(sim_quant$match)) + labs(y = "Final.Guess value 90th Percentile", x = "Shared Taxonomic Level with Match") + facet_wrap(~size) + theme_bw()
+```
+```{r contam-counts, echo=FALSE, message=FALSE}
+ggplot(sim_unique_counts) + 
+  geom_boxplot(aes(x = size, y = count), color = "grey") +
+  geom_point(aes(x = size, y = count, color = org1_tid), size = 4) + 
+  geom_line(aes(x = as.numeric(size), y = count, color = org1_tid)) +
+  labs(x = "Read Size (bp)", y = "Number of hits to unique organisms", color = "Organism")+
+  theme_bw()
+```
+Between 50 and 200 unique organism hits for each of the dataset combinations.  The difference in the number of unique matches has a much larger decrease compared to single organisms.  
+
+To hits to the single organism simulated datasets were removed from the contaminant datasets if the Final.Guess for the hit was less than 10 times the Final.Guess for the single organism.
+
