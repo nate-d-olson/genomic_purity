@@ -126,3 +126,17 @@ Between 50 and 200 unique organism hits for each of the dataset combinations.  T
 
 To hits to the single organism simulated datasets were removed from the contaminant datasets if the Final.Guess for the hit was less than 10 times the Final.Guess for the single organism.
 
+```{r single-counts-plot, echo=FALSE, fig.width = 6, fig.height=12}
+#need to order x axis species - genus
+ggplot(single_counts) + 
+  geom_line(aes(x = -as.numeric(variable), y = value, color = as.character(org_tid)), 
+            alpha = 0.5, show_guide = F) +
+  geom_point(aes(x = -as.numeric(variable), y = value, color = as.character(org_tid)), 
+             size = 4, alpha = 0.5, show_guide = F) + 
+  scale_x_continuous(breaks = -length(levels(single_counts$variable)):-1, 
+                     labels = c("Genus", "Strain")) +
+  labs(x = "Match Level", y = "Number of unqiue hits", color = "Target\nGenus")+
+  theme_bw() +
+  facet_grid(target_genus~size) +
+  theme(strip.text.y = element_text(face="italic"))
+```

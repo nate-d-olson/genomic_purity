@@ -38,7 +38,7 @@ for(i in c("org1_tid","org2_tid","size")){
 contam_matches <- clean_match_df(contam_matches)
 ```
 
-```{r org_names, echo=FALSE, message=FALSE, cache=TRUE}
+```{r org_names, echo=FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Getting organsim and name and genus for matches and single organisms
 org_df <- genusNameTable(unique(single_matches$org_tid))
 single_matches <- join(single_matches, org_df)
@@ -56,25 +56,24 @@ single_matches <- join(single_matches, org_match_df)
 ```{r genus-table, results='hide', echo=FALSE, message=FALSE}
 #modifying org_df for single dataset genus summary table
 org_table <- dcast(org_df, genus~.)
-colnames(org_table) <- c("Genus", "Strains")
+colnames(org_table) <- c("Genus", "Total Strains")
 org_table$Genus <- as.character(org_table$Genus)
 org_table2 <- rbind(org_table, c(Genus = "Total", Strains = sum(org_table$Strains)))
 ```
 
-```{r proportions, echo=FALSE, results='hide'}
+```{r proportions, echo=FALSE, message=FALSE, results='hide'}
 ## contaminat proportions - for text
 proportions <- str_c(unique(contam_matches$prop1),signif(1 - unique(contam_matches$prop1),2), sep = ":")
 ```
 
-```{r sim-unique-counts, echo=FALSE, results='hide'}
+```{r sim-unique-counts, echo=FALSE, message=FALSE, results='hide'}
 ## Summary of single dataset match counts
 sim_unique_counts <- ddply(contam_matches, .(org1_tid, size), summarize, count = length(unique(match_tid)))
 sim_unique_counts$name <- single_matches$name[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
 sim_unique_counts$genus <- single_matches$genus[match(sim_unique_counts$org1_tid, single_matches$org_tid)]
 ```
 
-```{r filtered-contam, echo=FALSE, results='hide', cache=TRUE}
-#echo=FALSE, results='hide', cache=TRUE
+```{r filtered-contam, echo=FALSE, message=FALSE, results='hide', cache=TRUE}
 ## Removing hit to single organisms from contam matches dataset
 baseline_df <-  single_matches[single_matches$size == 250 & single_matches$org %in% unique(contam_matches$org1),] 
 contam_filtered_250 <- filter_noise(contam_matches[contam_matches$size == 250,])
@@ -82,9 +81,13 @@ org_df$org2_tid <- org_df$org_tid
 contam_filtered_250 <- join(contam_filtered_250, org_df)
 contam_filtered_250 <- rename(contam_filtered_250, replace = c("name" = "contam_name",
                                                                "genus" = "contam_genus"))
+contam_filtered_250$match_genus <- factor(contam_filtered_250$match_genus, 
+                                          levels = c(levels(contam_filtered_250$match_genus),
+                                                     "unc. Enterobacteriaceae"))
+contam_filtered_250$match_genus[contam_filtered_250$match_tid == 693444] <- "unc. Enterobacteriaceae"
 ```
 
-```{r single_counts_df, echo=FALSE, results='hide'}
+```{r single_counts_df, echo=FALSE, message=FALSE,results='hide'}
   single_counts <- ddply(single_matches, 
                          .(org_tid, target_genus, size), 
                          summarize, 
@@ -94,38 +97,46 @@ contam_filtered_250 <- rename(contam_filtered_250, replace = c("name" = "contam_
   single_counts$size <- as.factor(single_counts$size)
 ```
 
-```{r org-labels, echo=FALSE}
+```{r org-labels, echo=FALSE, message=FALSE,results='hide'}
 contam_names <- org_df[org_df$org_tid %in% as.character(unique(contam_matches$org2_tid)),]
 contam_names$ab_names <- c("S. aureus", "F. tularensis","Y. pestis","S. enterica LT2", "B. anthracis", "P. aeruginosa", "E. coli")
-contam_names$org2_tid <- NULL
+ab_name_order <- c("B. anthracis",  "E. coli", "F. tularensis", "P. aeruginosa", "S. enterica", "S. aureus","Y. pestis" ) 
+contam_names$ab_names <- factor(contam_names$ab_names,levels=ab_name_order)
+
+# adding strain names to org_table2
+org_table2[,"Representative Strain"] <- contam_names$name[match(org_table2$Genus, contam_names$genus)]
 ```
 
-```{r contam_genome_matches, echo=FALSE}
-contam_counts <- ddply(contam_filtered_250, 
-                       .(org1_tid, org2_tid, match_genus), 
-                       summarize, 
-                       counts =length(unique(match_tid)))
-contam_counts$org2_name <- org_names$ab_name[match(contam_counts$org2_tid,org_names$org_tid)]
-```
-
-```{r org-tid-labeller}
-org_names_list <- contam_names$ab_names
-names(org_names_list) <- contam_names$org_tid
+```{r org-tid-labeller, echo=FALSE, message=FALSE, results='hide'}
+# this function is not working properly
+org_names_list <- as.list(setNames(contam_names$ab_names,contam_names$org_tid))
+#org_names_list <- contam_names$ab_names
+#names(org_names_list) <- contam_names$org_tid
 org_tid_labeller <- function(variable,value){
   return(org_names_list[value])
 }
 ```
 
+```{r contam_counts_df, echo=FALSE, message=FALSE}
+contam_counts <- ddply(contam_filtered_250, 
+                       .(org1_tid, org2_tid, match_genus), 
+                       summarize, 
+                       counts =length(unique(match_tid)))
+contam_counts$org2_name <- contam_names$ab_name[match(as.character(contam_counts$org2_tid),as.character(contam_names$org_tid))]
+contam_counts$org2_name <- factor(contam_counts$org2_name,levels=ab_name_order)
+contam_counts$org1_name <- contam_names$ab_name[match(as.character(contam_counts$org1_tid),as.character(contam_names$org_tid))]    
+contam_counts$org1_name <- factor(contam_counts$org1_name,levels=ab_name_order)
+```
+
+```{r contam_LOD_df, echo=FALSE, message=FALSE}
+contam_genus_match <- contam_filtered_250[as.character(contam_filtered_250$match_genus) == as.character(contam_filtered_250$contam_genus),]
+contam_genus_match <- contam_genus_match[!is.na(contam_genus_match$Genome),]
+contam_genus_match$org1_name <- contam_names$ab_name[match(as.character(contam_genus_match$org1_tid),as.character(contam_names$org_tid))]    
+contam_genus_match$org1_name <- factor(contam_genus_match$org1_name,levels=ab_name_order)
+```
 
 Outline for ASM poster on validating test material purity
 ========================================================
-# TODO
-Check single_matches and contam matches for -1 in org_tids and NA in matches
-Check for multiple entries in the single org datasets
-make supplemental material table with complete list of single organisms
-workout adding taxa names to figures
-add org2 and org1 genus
-
 # Header
 ## Title   
 Development of methods for using the pathoscope sequence analysis software to validate microbial test material purity.
@@ -137,62 +148,58 @@ Jayne Morrow
 Nancy Lin 
 
 ## Author Affiliation  
-Biosystems and Biomaterials Division, National Institute of Standards and Technology   
+Biosystems and Biomaterials Division, National Institute of Standards and Technology     
 
 ## Contact  
 email nolson@nist.gov
 
 # Abstract
-Method validation for biodetection technologies requires high purity test materials.  Traditional methods for evaluating test material purity, e.g. polymerase chain reaction (PCR), require prior knowledge of the contaminant identity and have a limited level of detection (LOD).  Whole genome sequencing using next generation sequencing (NGS) technology addresses these limitations by providing a non-target specific approach and a lower LOD due to the large number of reads generated in a sequencing run – ten thousand to over one million reads.  Here we present a novel application of the pathoscope sequence analysis program (http://sourceforge.net/projects/pathoscope/) coupled with an expanded reference dataset to evaluate test material purity and validate material identity using simulated whole genome sequencing datasets.  To evaluate the ability of pathoscope to identify contaminants in test materials, in silico generated datasets for `r length(unique(single_matches$input_filename))` organisms from `r length(unique(org_df$genus))` different genera (`r unique(org_df$genus)`).   First, the results from the analysis of the single organism datasets using pathoscope served as a baseline for the simulated contaminat analysis. To determine the method LOD, simulated reads from `r length(unique(contam_matches$org2))` were mixed at known proportions. **Need to revise** *All contaminant organisms were detected to proportions of at least 1 in 100, and P. aeruginosa and S. aureus were detectable as contaminants in all target organisms down to proportions of 1 in 10$^7$.*  The approach presented here provides a sample independent, highly sensitive, and specific method for evaluating test material purity.  With the rapid decrease in NGS costs, this approach is a viable alternative to PCR based methods for evaluating test material purity and can be applied in a high throughput manner for screening panels of test materials used to validate biothreat detection technologies.   
+Method validation for biodetection technologies requires high purity test materials.  Traditional methods for evaluating test material purity, e.g. polymerase chain reaction (PCR), require prior knowledge of the contaminant identity and have a limited level of detection (LOD).  Whole genome sequencing using next generation sequencing (NGS) technology addresses these limitations by providing a non-target specific approach and a lower LOD due to the large number of reads generated in a sequencing run – ten thousand to over one million reads.  Here we present a novel application of the pathoscope sequence analysis program (http://sourceforge.net/projects/pathoscope/) coupled with an expanded reference dataset to evaluate test material purity and validate material identity using simulated whole genome sequencing datasets.  To evaluate the ability of pathoscope to identify contaminants in test materials, in silico generated datasets for `r length(unique(single_matches$input_filename))` organisms from `r length(unique(org_df$genus))` different genera (`r str_c(unique(org_df$genus)[-length(unique(org_df$genus))], collapse = ", ")` and `r unique(org_df$genus)[length(unique(org_df$genus))]`).   First, the results from the analysis of the single organism datasets using pathoscope served as a baseline for the simulated contaminat analysis. Simulated datasets of 250 bp paried end reads with reads classified at the genus level provided suitable levels of specificity to identify potential test material contaminants.  To determine the method LOD, simulated reads from `r length(unique(contam_matches$org2))` were mixed at known proportions. All contaminant organisms excluding B. anthracis amd F. tularensis were detected at 0.05 % for all but 5 of the 29 the simulated test materials.  The detection levels for B. anthracis amd F. tularensis ranged between 5 % down to 0.25 %.  The approach presented here provides a sample independent, highly sensitive, and specific method for evaluating test material purity.  With the rapid decrease in NGS costs, this approach is a viable alternative to PCR based methods for evaluating test material purity and can be applied in a high throughput manner for screening panels of test materials.   
 
 # Introduction
-*Need new background introduction paragraph*     
-There are a number of potential sources for contamination of test materials with other microorganisms, including the stock culture, the preservation medium, as well as airborne and laboratory contaminants.  While high levels of contamination may be more easily identified, a rigorous and systematic approach is often needed to detect lower levels of contamination.  For example, a purified culture of Geobacter sulfurreducens strain KN400 over 20 years old was found to have low levels of contamination of Geobacter sulfurreducens strain DL1 [8].   However, the KN400 genome was sequenced using next–generation sequencing with 80 X coverage without identification of the contaminant.  The contaminant was first detected using a selective culturing system.  After initial identification of the contaminant, the concentration of the contaminant was determined using polymerase chain reaction (PCR) and next generation sequencing for the OmcS gene, which contained a 14 bp difference between the contaminant and culture strain.  From the PCR assay, the contaminant was determined to contribute 1 out of 105 copies of the OmcS gene with the remainder of the copies contributed by the main KN400 strain.  Once the contaminant was identified, a systematic approach could then be used to identify the source of the contaminant, if desired. 
+define test materials   
+what are they used for   
+why test materials should be pure 
+There are a number of potential sources for contamination of test materials with other microorganisms, including the stock culture, the preservation medium, as well as airborne and laboratory contaminants.   
+
 Current methods for evaluating test material purity include PCR-based assays, metagenomics, and whole genome sequencing based approaches.  One PCR assay was developed to analyze protist cultures.  This PCR assay uses endpoint PCR for prokaryotes and eukaryotes with template dilutions [9].  The benefit to PCR-based approaches is that they can be cost effective and fast if an applicable protocol exists.   However, PCR assays can only target specific contaminants.  While PCR based assays can detect contaminants, this approach does not scale effectively for multiple, potentially unknown contaminants and test materials.   
 The bioinformatics tools developed to identify contaminants in metagenomic datasets, which include sequencing data from all organisms in a sample, can also be used to evaluate test material purity.  For example DeconSeq [10] and a similar method QC-Chain [11] were developed to identify contaminants based on analysis of 16S ribosomal ribonucleic acid (rRNA) gene sequences or comparison of a subset of reads to a reference database using Basic local alignment search tool (BLAST).  Metagonomic-based methods such as these are able to identify contaminants without any prior knowledge or assumptions regarding the identity of the organism(s).  However, methods based on 16S rRNA gene identification have limited resolution, as 16S rRNA sequences can only provide genus level taxonomic resolution at best.  Methods using BLAST-based searches represent a broader scale approach but are limited by the accuracy of the BLAST classification method.   The benefit to using tools developed for metagenomics is that prior knowledge of the identity of the contaminant is not required; however this method is unable to identify contaminants to the strain level.   
 Another approach to evaluating test material purity is through shotgun whole genome sequencing, which attempts to sequence all DNA in a sample.  A recently published bioinformatics method, pathoscope, was developed to detect pathogens and identify strains using whole genome sequencing data.  This method benefits from the large sample size obtained using next generation sequencing for higher sensitivity and leverages algorithm advances for whole genome sequence mapping.  Mapping algorithms determine the optimal placement of reads relative to a reference sequence.  Reads are either uniquely or ambiguously mapped.  For uniquely mapped reads only a single optimal mapping location is identified, whereas for ambiguously mapped reads multiple optimal mapping locations are identified.  Pathoscope uses the number of reads that uniquely map to different genomes in the reference database to assign ambiguously mapped reads, reads that align equally well to multiple reference sequences.  The primary benefits to the shotgun whole genome sequencing and subsequent pathoscope analysis approach are that prior knowledge of the contaminant is not required and it can potentially identify the contaminant to the strain level.  However, the main limitation to this method is the size of the reference database, namely that the genome of the contaminant or a closely related organism must be present in the database for the contaminant to be detected.
-Robust approaches to measure purity of microbial test materials used to validate biothreat detection assays will provide an increased confidence in the results from those assays.  In this work, we developed a novel method to measure the purity of single organism test materials.  This method is based on whole genome sequencing and utilizes pathoscope with an expanded reference database [12].  We will first present the specificity of the method using simulated data for single organisms.  Then, we will evaluate the limit of detection and quantitative accuracy of the method using simulated datasets generated to represent test materials contaminated at various levels.  
-
+Robust approaches to measure purity of microbial test materials used to validate biodetection assays will provide an increased confidence in the results from those assays.  In this work, we developed a novel method to measure the purity of single organism test materials.  This method is based on whole genome sequencing and utilizes pathoscope with an expanded reference database [12].  We will first present the specificity of the method using simulated data for single organisms.  Then, we evaluated the limit of detection of the method using simulated datasets generated to represent test materials contaminated at various proportions.  
 
 # Methods
-This bioinformatics approach to measuring test material purity consists of three steps.   
-1. Sequencing reads are generated for the test material using shotgun sequencing.   
-2. The reads are mapped to a reference database.  
-        For this step individual reads are aligned to all possible locations in the genomes in the reference database.   We generated a more exhaustive database compared to the pathoscope database including all prokaryotic organisms in the Genbank database (http://www.ncbi.nlm.nih.gov/genbank/, accessed 10/18/2013).    
-3. The resulting mapping file is processed with pathoscope to assess dataset composition [12].
-        For the mapping step the bwa mem mapping algorithm was used (http://bio-bwa.sourceforge.net).  This algorithm is capable of mapping reads to reference databases greater than 4 Gb in size.  The reference dataset included the chromosomes and plasmids for 2,709 bacterial genomes, including the strains used to validate the procedure.  Additionally, bwa mem can output all possible alignments for ambiguously mapped reads.  
+This bioinformatics approach to measuring test material purity consists of three steps: 1. Sequencing reads are generated for the test material using shotgun sequencing. 2. The reads are mapped to a reference database. For this step individual reads are aligned to all possible locations in the genomes in the reference database.   We generated a more exhaustive database compared to the pathoscope database including all prokaryotic organisms in the Genbank database (http://www.ncbi.nlm.nih.gov/genbank/, accessed 10/18/2013). 3. The resulting mapping file is processed with pathoscope to assess dataset composition [12]. For the mapping step the bwa mem mapping algorithm was used (http://bio-bwa.sourceforge.net).  This algorithm is capable of mapping reads to reference databases greater than 4 Gb in size.  The reference dataset included the chromosomes and plasmids for 2,709 bacterial genomes, including the strains used to validate the procedure.  Additionally, bwa mem can output all possible alignments for ambiguously mapped reads.  
 
-To evaluate the specificity and sensitivity of the approach, simulated single organism as well as contaminated datasets (mixtures of two organisms) were generated.  The organisms used in the study included common biothreat agents and foodborne human pathogens (Table 1).  Simulated datasets were generated using the ART sequencing read simulator (Reference for ART).  The ART simulator used error models based on real sequence datasets to generate more realistic datasets.  The datasets were generated using the Illumina error models with paired end 75 and 250 base pair reads and 20 X mean coverage for each of the strains [13].
+To evaluate the specificity and sensitivity of the approach, simulated single organism as well as contaminated datasets (mixtures of two organisms) were generated.  The organisms used in the study included common foodborne human pathogens and biothreat agents (Table 1).  Simulated datasets were generated using the ART sequencing read simulator [13].  The ART simulator used error models based on real sequence datasets to generate more realistic datasets.  The datasets were generated using the Illumina error models with paired end 75 and 250 base pair reads and 20 X mean coverage for each of the strains [13].
 
-Simulated whole genome sequencing datasets for `r length(unique(single_matches$input_filename))` organisms from  `r length(unique(org_df$genus))` different genus (Table 1) were used to evaluate the method specificity. Datasets from the individual organisms were mapped to the all-bacterial genomes database using bwa mem.  The resulting mapping file was processed using pathoscope.  The specificity of the individual organisms was evaluated at the strain to phylum level.
+Simulated whole genome sequencing datasets for `r length(unique(single_matches$input_filename))` organisms from  `r length(unique(org_df$genus))` different genus (Table 1) were used to evaluate the method specificity. Datasets from the individual organisms were mapped to the all-bacterial genomes database using bwa mem.  The resulting mapping file was processed using pathoscope. 
 ```{r genus-xtable, results='asis', echo=FALSE}
 print(xtable(org_table2),type='html')
 ```
 
-To evaluate the method sensitivity, simulated datasets with a target strain and a contaminant strain were generated and evaluated.  The reads in the datasets were subsampled in the following proportions:`r proportions[-1]` and `r proportions[length(proportions)]` where the first number represents the percentage of reads randomly selected from the target organism dataset and the second number represents the number of reads randomly selected from the contaminant dataset.  For example, a proportion of 0.5:0.5, the combined dataset included a random subsampling of 50 % of the reads from the target organism dataset and 50 % of the reads from the contaminant organism dataset.  Datasets were generated for all pairwise comparisons so that each of the six organisms was both a contaminant and target organism for all possible combinations at all 9 proportions, for a total of `r length(unique(contam_matches$input_filename))`  combinations.  The individual organism datasets vary in the number of reads in the due to differences in genome size, such that 50 % of one dataset will be a different absolute number of reads than 50 % of another dataset.   
-To generate the simulated mapping datasets, the mapping files for the individual organisms were merged using samtools (http://samtools.sourceforge.net).  The resulting merged data files were downsampled to obtain the appropriate proportions of organisms for each of the `r length(unique(contam_matches$input_filename))` combinations using an in-house python script.  The resulting simulated contaminated datasets were processed using pathoscope, and the output files were analyzed to determine the limit of detection and quantitative accuracy of the methods using the statistical programing language R [14].
+To evaluate the method sensitivity, simulated datasets with a target strain and a contaminant strain were generated and evaluated.  The reads in the datasets were subsampled in the following proportions:`r proportions[-1]` and `r proportions[length(proportions)]` where the first number represents the percentage of reads randomly selected from the target organism dataset and the second number represents the number of reads randomly selected from the contaminant dataset.  For example, a proportion of 0.5:0.5, the combined dataset included a random subsampling of 50 % of the reads from the target organism dataset and 50 % of the reads from the contaminant organism dataset.  Datasets were generated for all pairwise comparisons so that each of the six organisms was both a contaminant and target organism for all possible combinations at all `r length(proportions)` proportions, for a total of `r length(unique(contam_matches$input_filename))`  combinations.  The individual organism datasets vary in the number of reads in the due to differences in genome size, such that 50 % of one dataset will be a different absolute number of reads than 50 % of another dataset.   
+To generate the simulated mapping datasets, the mapping files for the individual organisms were merged using samtools (http://samtools.sourceforge.net).  The resulting merged data files were downsampled to obtain the appropriate proportions of reads for each of the `r length(unique(contam_matches$input_filename))` combinations using an in-house python script.  The resulting simulated contaminated datasets were processed using pathoscope, and the output files were analyzed to determine the limit of detection of the methods using the statistical programing language R [14].
 
 All of the scripts used in the study are available at https://github.com/nate-d-olson/genomic_purity. 
 
 # Results and Discussion
 ## Specificity    
-The results from analyzing single organism datasets was analyzed to assess the specificity of the method.  Here specificity is defined as the methods ability of accuractely assign the reads to the appropriate organism.   
-```{r single-counts-plot, echo=FALSE, fig.width = 10, fig.height=15}
+The single organism datasets to assess the method specificity.  Here specificity is defined as the methods ability to assign the reads to the appropriate organism.   
+```{r single-counts-plot, echo=FALSE, fig.width = 10}
 #need to order x axis species - genus
 ggplot(single_counts) + 
-    geom_line(aes(x = as.numeric(variable), y = value, color = as.character(org_tid)), 
-              alpha = 0.5, show_guide = F) +
-    geom_point(aes(x = as.numeric(variable), y = value, color = as.character(org_tid)), 
-               size = 4, alpha = 0.5, show_guide = F) + 
-    scale_x_continuous(breaks = 1:length(levels(single_counts$variable)), 
+  geom_boxplot(aes(x = variable, y= value, color = size)) + 
+  facet_grid(~target_genus) +
+  scale_x_discrete(breaks = levels(single_counts$variable), 
                        labels = c("Genus", "Strain")) +
-    labs(x = "Match Level", y = "Number of unqiue hits", color = "Target\nGenus")+
-    theme_bw() +
-    facet_grid(target_genus~size) +
-    theme(strip.text.y = element_text(face="italic"))
+  labs(x = "Match Level", y = "Number of unqiue hits", color = "Size (bp)")+
+  theme_bw() +
+  theme(strip.text.x = element_text(face="italic"))
 ```
-For all organisms the number of unqiue matches decreases with increase in the length of the simulated reads. The number of matches is dependent on the genetic diversity of the genomes within the genus in the database. Genus with greater diversity will have fewer unique hits as fewer reads map incorectly to other genomes.    
-#$# Note to self - should I test the impact of genetic diversity on number of unique counts and if so how?
+
+For all organisms the number of both strain and genus matches decreases with increase in the length of the simulated reads (Fig. 1). The number of matches is dependent on the genetic diversity of the genomes within the genus in the database. Genus with greater diversity have fewer unique hits as fewer reads map incorectly to other genomes. The number of unique genus level matches for 250 bp simulated datasets provide a level of specificty that will allow for detection of contaminants in test materials with 99 % of target organisms having `r quantile(single_counts$value[single_counts$size == 250 & single_counts$variable == "genus_count"],probs=0.99)` or few unique genus level matches.   
+  
+
 ```{r single-specificity-plot, echo=FALSE}
 ggplot(single_counts[single_counts$size == 250,]) + 
   geom_density(aes(x = value, fill = variable), alpha = 0.25) +
@@ -201,48 +208,54 @@ ggplot(single_counts[single_counts$size == 250,]) +
        fill = "Match Level") +
   theme_bw() 
 ```
-The number of unique genus level matches for 250 bp simulated datasets provide a level of specificty that will allow for detection of contaminants in test materials with 99 % of target organisms having `r quantile(single_counts$value[single_counts$size == 250 & single_counts$variable == "genus_count"],probs=0.99)` or few unique genus level matches.   
 
-Overall distribition of Final.Guess values.  Final.Guess is the proprotion of the total number of aligned reads to the number of a reads assinged to a genome in the reference database. The 90 % of the hits have a Final.Guess values of less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  For most of the matched only a small fraction of the reads are mapped to the match organisms genome in the reference database.   
+Only a few reads were mapped to a majority of the sequences in the database (Fig 2). The estimated proportion of reads in the datasets mapped to a genome in the database 90 % have an estimated proportion less than `r quantile(single_matches$Final.Guess, probs= 0.90)`.  Most of the reads are mapped to the match organisms genome in the reference database (Fig 3). 
 
-```{r final-guess-hist, echo=FALSE, message=FALSE}
+```{r final_guess_plot, echo=FALSE, message=FALSE}
 qplot(x = Final.Guess, data = single_matches, geom= "bar") + scale_x_log10() + theme_bw() + labs(x = "Estimated Proportions", y = "Abundance")
+```
+```{r final_guess_exact_plot, echo=FALSE, message=FALSE}
+#for exact matches only
+qplot(x = Final.Guess, data = single_matches[single_matches$match == "exact",], geom= "bar") + scale_x_log10() + theme_bw() + labs(x = "Estimated Proportions", y = "Abundance")
 ```
 
 ## Sensitivity
-The sensitivity of the method was evaluated by on the methods ability to detect the in silico contaminant spiked in at different proportions.  Sensitivity was assessed for 250 bp reads and the genus of the reference organisms the mapped reads were assigned to.  
-### species and strain level evaluation of the matches for the 250 bp and all match levels for the 75 bp datasets- the specificity of the method was too low.  Difficult to differentiate the noise from the contaminant signal.
-
-## Need an inital plot showing the number of genus matched for foreach org1 org2 pair or at least each org1
-```{r contam_genome_matches_plot, fig.width=10, fig.height=4, echo=FALSE}
+The sensitivity of the method was evaluated by the methods ability to detect the in silico contaminants spiked in at different proportions.  Sensitivity was assessed for 250 bp reads and the genus of the reference sequence the mapped reads were assigned to.  Species and strain level evaluation of the matches for the 250 bp and all match levels for the 75 bp datasets- the specificity of the method was too low and therefore challenging to differentiate the noise from the contaminant signal.  To reduce the level of background noise hits to sequences for the single organism datasets for the test material strains were removed from the results for the contaminated datasets. For all contaminated test material datasets only the test material organims and contaminant were detected for the 250 bp datasets when evaluated at the genus level excluding E. coli (Fig. 4).  The different simulated datasets were used for the specficity and sensitity parts of the study.  The hits to the test material genus represent hits to different species in the genus than the species reads were mapped to for the single organism datasets.  For all of the E. coli datasets reads were also mapped to the closely related genus Shigella as well as Citrobacter and an unclassified Enterobateriaceae.  
+*Need to find a reference for genus level similarites for E coli genus hits*
+```{r contam_counts_plot, fig.width=10, fig.height=4, echo=FALSE}
 ggplot(contam_counts) + 
   geom_raster(aes(x = org2_name, y = match_genus, fill = match_genus), show_guide = F) + 
-  facet_grid(~org1_tid, scale = "free_x", labeller = org_tid_labeller) +
+  facet_grid(~org1_name, scale = "free_x") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90)) + 
+  theme(axis.text.x = element_text(angle = 90),
+        axis.text = element_text(face = "italic"),
+        strip.text.x = element_text(face="italic")) + 
   labs(x = "Contaminant Name", y= "Match Genus")
 ```
 
+The method limit of detection ranged from 5 % to 0.000025 % of the sample(Fig. 5).  Most (31 out 42) of test material and contaminant combinations having limit of detection of 0.25 %.  F. tularensis and B. anthracis had consistently predicted limit of detection when spiked into other test materials.  The lower limit of detection is due to the lower geneic diversity of the two genus and therefore fewer reads in the datasest map uniquely to sequences for the genus.
 
-```{r contam_LOD_fig, echo=FALSE}
-contam_genus_match <- contam_filtered_250[as.character(contam_filtered_250$match_genus) == as.character(contam_filtered_250$contam_genus),]
-contam_genus_match <- contam_genus_match[!is.na(contam_genus_match$Genome),]
+
+
+```{r contam_LOD_plot, echo=FALSE}
 ggplot(contam_genus_match) + 
-  geom_raster(aes(x= as.factor(prop2), y = org2_tid, fill = match_genus)) + 
-  facet_grid(org1_tid~., scale = "free_y", labeller = org_tid_labeller) +
-  labs(x = "Contaminant Spike Level", 
-       y = "Contaminant Organsim", 
+  geom_raster(aes(y= as.factor(prop2), x = org2_tid, fill = match_genus)) + 
+  facet_grid(.~org1_name, scale = "free_x") +
+  labs(y = "Contaminant Spike Level", 
+       x = "Contaminant", 
        fill = "Contaminant Genus") +
   theme_bw() +
-  theme(axis.text.y = element_blank(), strip.text.y = element_text(face="italic"), legend.position = "bottom", legend.direction="horizontal")
+  theme(strip.text = element_text(face="italic"), legend.position = "bottom", legend.direction="horizontal",axis.text.x = element_blank())
 ```
 
-Even with baseline removal a number of hits to the target organisms genome
-
+#### Things to add    
+1. discussion of the accuracy of the estimated proportions (Final.Guess)     
+2. Need to get numbers for the uniquely mapped reads   
+3. size of the genomes    
+4. proportion of reads in the datasets    
 
 # Conclusions
-Suitablility of the methods for characterizing target materials
-What are the next steps
+The combination of whole genome sequencing and characterization of the datasets using pathoscope and a large reference database provides a viable method for characterizing test material purity.  Next steps are to apply this method to characterize existing microbial whole cell and genomic DNA test materials.  Future work could include characterization of the method performance for different read sizes and error profiles (e.g. Ion Torrent and Pacific Biosciences data).  Additionally, the reference database could be modified to include other common contaminants such as human mitochondria genome.  
 
 # References
 1.  Coursey, B. Framework for a Biothreat Field Response Mission Capability Framework for a Biothreat Field Response Mission Capability. 2011.
