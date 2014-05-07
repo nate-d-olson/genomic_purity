@@ -33,9 +33,3 @@ Genome size 5.7 Mb
 Chrs 1
 Plamids 2 pEC4115 37,452 bp, pO157 94,644 bp
 http://www.ncbi.nlm.nih.gov/genome/167?project_id=59091
-
-# Note do not have the bam or fastq files for the simulated contaminant datasets.
-
-
-# EPA. (2004). Quality Assurance/Quality Control Guidance for Laboratories Performing PCR Analyses on Environmental Samples October 2004. October, (October).
-potential reference for PCR LOD - may need to do some calculations 

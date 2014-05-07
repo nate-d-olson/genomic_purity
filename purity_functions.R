@@ -1,3 +1,15 @@
+# function for removing unused columns
+clean_match_df <- function(match_df){
+  return(subset(match_df, select = -c(Final.Best.Hit, 
+                                      Final.High.Confidence.Hits, 
+                                      Final.Low.Confidence.Hits, 
+                                      Initial.Guess, 
+                                      Initial.Best.Hit, 
+                                      Initial.Best.Hit.Read.Numbers, 
+                                      Initial.High.Confidence.Hits, 
+                                      Initial.Low.Confidence.Hits)))
+}
+
 unique_count_plot <- function (df) {
   sim_unique_counts <- ddply(df, .(org, org_tid, size), summarize, count = length(unique(match_tid)))
   sim_unique_counts$size <- as.factor(sim_unique_counts$size)
