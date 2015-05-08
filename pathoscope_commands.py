@@ -36,8 +36,7 @@ def pathoqc_command(input, output, out_dir, proc):
     #     pathoqc_command = pathoqc_command #+ ['-1',fastq1, '-2',fastq2,'-s',plat,'-p',str(thread_num),'-o',out_dir]
     # else:
     qc_cmd = qc_cmd + ['-1',input, '-o', out_dir,'-p', proc]
-    # subprocess.call(pathoqc_command) #, stdout=log_file, stderr=stderr_file) 
-    print qc_cmd       
+    # subprocess.call(pathoqc_command) #, stdout=log_file, stderr=stderr_file)      
     subprocess.call(qc_cmd)
 
 
