@@ -18,6 +18,7 @@ import os
 import sys
 from ruffus import *
 from pathoscope_commands import *
+from ngs_simulate_commands import *
 
 """		
 	## sub pipelines
@@ -170,6 +171,65 @@ def make_pathoscope_pipe(pipeline_name):
 
 	return patho_pipe
 
+def make_sim_pure_pipe(pipeline_name):
+	"""
+		pathoscope pipeline for processing simulated pure isolates
+		input: list of directories with organisms whoes genome's being processed
+		output: pathoscope id report
+		%%TBD%% how parameters will be defined
+	"""
+	patho_pipe = Pipeline(pipeline_name)
+
+	##skipping, not sure how to using directories as input for ruffus
+	patho_pipe.transform(task_func  	= get_genome_fasta,
+	                     input      	= None, 
+	                     filter     	= regex(r"(_uid.*)"), # see about formatter to trim start
+	                     output			= '.fasta')
+
+	patho_pipe.transform(task_func  	= simulate_miseq, # can use split deccorator when multiple files are produced
+	                      input      	= output_from(get_genome_fasta), 
+	                      filter     	= suffix('.fasta'),
+	                      output		= '*.fq') 
+
+	patho_pipe.collate(pathoqc_command,
+            # match file name up to the "1.fq"
+            #regex(r"(test_files/.*$)"), error in regex has not len()
+            formatter("([^/]+)[12].fq$"),
+            # Create output parameter supplied to next task
+            ["{path[0]}/{1[0]}_1_qc.fq.gz",  # paired file 1
+             "{path[0]}/{1[0]}_2_qc.fq.gz"], # paired file 2
+            # Extra parameters for our own convenience and use
+            # ["{path[0]}/{1[0]}unpaired.R1.fastq.gz",  # unpaired file 1
+            #  "{path[0]}/{1[0]}unpaired.R2.fastq.gz"], # unpaired file 2
+            'test_files','8')
+      #       regex(r"(*.fq)"), formatter("([^/]+)[12].fq$"), #output_from(simulate_miseq), 
+						# ["{1[0]}_1_qc.fq.gz","{{1[0]}_2_qc.fq.gz"],['test_files','8'])
+
+	# patho_pipe.collate(task_func  		= pathoqc_command,
+	#                       input      	= output_from(simulate_miseq), 
+	#                       filter     	= formatter("([^/]+)[12].fq$"),
+	#                       output		=  ["{path[0]}/{1[0]}_1_qc.fq.gz",
+ #             									"{path[0]}/{1[0]}_2_qc.fq.gz"],
+	#                       extras		= ['test_files','8'])
+
+	# patho_pipe.collate(task_func    	= pathomap_command,
+	# 					  input        	= output_from("pathoqc_command"),
+	# 					  filter	   	= suffix('_qc.fq.gz'),
+	# 					  output  		= '-appendAlign.sam',
+	# 					  extras 		= ['test_files/CFSAN030013.fasta','test_files', 'T'])
+
+	# patho_pipe.transform(task_func  	= pathoid_command,
+	# 	                 input 			= 	output_from("pathomap_command"),
+	# 	                 filter     	=  suffix("-appendAlign.sam"),
+	# 	                 output			= "-sam-report.tsv",
+	# 	                 extras 		= ['test_files', 'T'])
+
+	## for defining inputs using set_input()
+	# patho_pipe.set_head_tasks([patho_pipe[simulate_miseq]])
+	patho_pipe.set_head_tasks([patho_pipe[get_genome_fasta]])
+
+	return patho_pipe
+
 ###############################################################################
 ##
 ## Defining full pipelines
@@ -200,9 +260,18 @@ def make_pathoscope_pipe(pipeline_name):
 # sim_contam.set_input(input = [sim_fastq_pipeline, patho_qc_map_pipeline, sim_contam_pipeline])
 
 ## Pathoscope test pipe
-starting_files = ["test_files/TSRR1979039_1.fastq", "test_files/TSRR1979039_2.fastq"]
-test_pipe = make_pathoscope_pipe(pipeline_name = "test_pipe")
-test_pipe.set_input(input = starting_files)
+# starting_files = ["test_files/TSRR1979039_1.fastq", "test_files/TSRR1979039_2.fastq"]
+# test_pipe = make_pathoscope_pipe(pipeline_name = "test_pipe")
+# test_pipe.set_input(input = starting_files)
+
+## simulate pure test pipe
+## not working dirs
+org_dir_list = ["/current_projects/genomic_purity/test_files/Acaryochloris_marina_MBIC11017_uid12997"]
+# org_fasta = ["test_files/test_uid12997.fasta"]
+test_pure = make_sim_pure_pipe(pipeline_name = "sim_pure_pipe")
+# test_pure.set_input(input = org_fasta)
+test_pure.set_input(input = org_dir_list)
+
 
 ###############################################################################
 ##
@@ -243,7 +312,7 @@ if  not options.just_print and \
     
     # %%TODO%% - need method for parsing inputs inorder to define and run pipeline
 
-    cmdline.run (options)
+    cmdline.run (options, logger = logger)
     sys.exit()
 
 #
