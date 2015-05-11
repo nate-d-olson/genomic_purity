@@ -1,19 +1,20 @@
 ### Read simulation functions for genomic contamination pipeline
 import os
 import subprocess
+import time
 from random import randint
 
 ## Get reference genomes
 ## generating genome fasta files for the genomes of interest by suppling a 
 #list of folders for the desired organisms
-def get_genome_fasta(input, output):
+def get_genome_fasta(input, output, genome_dir):
 	# input - name of bacterial genome directory 
 	# output - directory name with fasta extension
 	
 	filenames = []
-	for file in os.listdir(input):
+	for file in os.listdir(genome_dir + input):
 		if file.endswith(".fna"):
-			filenames.append(input + "/" + file)
+			filenames.append(genome_dir + input + "/" + file)
 
 	with open(output, 'w') as outfile:
 		for fname in filenames:
@@ -33,9 +34,13 @@ def simulate_miseq(input, output):
 	art_command = ["art_illumina","-i",input,"-o",out_root,
 				   "-ss","MS","-na","-rs",str(random_num),
 				   "-p","-f","20","-l", "230","-m", "690","-s","10"]
+
+	log_file = open(os.path.dirname(input) + "/logs/art_sim"+ time.strftime("-%Y-%m-%d-%H-%M-%S.log"),'w')
+	stderr_file = open(os.path.dirname(input) + "/logs/art_sim"+ time.strftime("-%Y-%m-%d-%H-%M-%S.stder"),'w')
+
 	print "Print command for record - note random number!"
 	print art_command
-	subprocess.call(art_command)
+	subprocess.call(art_command,stdout=log_file, stderr=stderr_file)
 
 #modifed to generate 250 bp paried end reads based on current 
 #MiSeq read lengths 11/22/2013
