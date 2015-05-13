@@ -10,8 +10,7 @@ import time
 import subprocess
 
 def pathoqc_command(input, output, pathoqc_config):
-    print input
-    print output
+    print "Pathoqc\n Input: %s\nOutput: %s\n\n" % (input, output)
     ## log file stores standard out
     out_dir = os.path.dirname(input[0])
     log_file = open(out_dir + "/logs/pathoqc"+ time.strftime("-%Y-%m-%d-%H-%M-%S.log"),'w')
@@ -26,6 +25,7 @@ def pathoqc_command(input, output, pathoqc_config):
     subprocess.call(pathoqc_command, stdout=log_file, stderr=stderr_file)        
 
 def pathomap_command(input, output, config): # ref_path, index_dir, fastq1, log_dir, out_dir, out_sam, exptag):
+    print "Pathomap\n Input1: %s\nInput2: %s\nOutput: %s\n\n" % (input[0], input[1], output)
     ## log file stores standard out
     out_dir = os.path.dirname(input[0])
     log_file = open(out_dir + "/logs/pathomap"+time.strftime("-%Y-%m-%d-%H-%M-%S.log"),'w')
