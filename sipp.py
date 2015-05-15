@@ -86,7 +86,7 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
                         config['pathoqc'])
 
 	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
-					formatter(".+/(?P<uid>\w+)_1_qc_fq.gz",".+/(?P<uid>\w+)_2_qc_fq.gz"), 
+					formatter("(?P<uid>\w+)_1_qc.fq.gz","(?P<uid>\w+)_2_qc.fq.gz"), 
                     "{path[0]}/pathomap-"+ config['pathomap']['ref_root']+ ".sam", 
                     config['pathomap']) #may need to change output suffix to -appendAlign.sam, for larger ref files
 #regex(r"_[12]_qc.fq.gz")
