@@ -80,13 +80,16 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
 	# 					regex(r"_[12].fq"), ["_1_qc.fq.gz", "_2_qc.fq.gz"],config['pathoqc'])
 
 	sip_pipe.transform(pathoqc_command,output_from("simulate_miseq"),
-						formatter("(?P<rooot>)_1.fq", "(?P<rooot>)_1.fq"), "{path{0]}/{root[0]}_qc.fq.gz",config['pathoqc'])
+						formatter("(?P<rooot>)_1.fq", "(?P<rooot>)_2.fq"), 
+                        ["test1","test2"],
+                        # ["{path{0]}/{root[0]}_qc.fq.gz","{path{1]}/{root[1]}_qc.fq.gz"],
+                        config['pathoqc'])
 
-	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
-					formatter(".+/(?P<uid>\w+)_[12]_qc_fq.gz"), "{path[0]}/pathomap-"+ config['pathomap']['ref_root']+ ".sam", config['pathomap']) #may need to change output suffix to -appendAlign.sam, for larger ref files
-#regex(r"_[12]_qc.fq.gz")
-	sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
-						suffix(".sam"),"-sam-report.tsv")#may need to change input suffix to -appendAlign.sam, for larger ref files
+# 	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
+# 					formatter(".+/(?P<uid>\w+)_[12]_qc_fq.gz"), "{path[0]}/pathomap-"+ config['pathomap']['ref_root']+ ".sam", config['pathomap']) #may need to change output suffix to -appendAlign.sam, for larger ref files
+# #regex(r"_[12]_qc.fq.gz")
+# 	sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
+# 						suffix(".sam"),"-sam-report.tsv")#may need to change input suffix to -appendAlign.sam, for larger ref files
 
 	sip_pipe.set_head_tasks([sip_pipe[task_originate]])
 
