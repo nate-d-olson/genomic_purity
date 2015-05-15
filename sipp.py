@@ -82,7 +82,7 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
 	sip_pipe.transform(pathoqc_command,output_from("simulate_miseq"),
 						formatter("(?P<rooot>)_1.fq", "(?P<rooot>)_2.fq"), 
                         # ["test1","test2"],
-                        ["{path[0]}/{root[0]}_1_qc.fq.gz","{path[1]}/{root[1]}_2_qc.fq.gz"],
+                        ["{root[0]}_1_qc.fq.gz","{root[1]}_2_qc.fq.gz"],
                         config['pathoqc'])
 
 # 	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
