@@ -1,12 +1,12 @@
 ## test parameters for simulated isolate purity
 ---
-genome_dir: '/genomic_purity/test_files/'
+genome_dir: '/genomic_purity/genomic_purity/test_files/'
 org_list: ['Acaryochloris_marina_MBIC11017_uid12997']
 pathoqc:
     plat: 'Illumina'
     thread_num: '8'
 pathomap:
     ref_root: 'CFSAN030013'
-    ref: '/genomic_purity/test_files/CFSAN030013.fasta'
-    index_dir: '/genomic_purity/test_files'
+    ref: '/genomic_purity/genomic_purity/test_files/CFSAN030013.fasta'
+    index_dir: '/genomic_purity/genomic_purity/test_files'
 
