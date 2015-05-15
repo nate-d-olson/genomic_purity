@@ -89,9 +89,9 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
 					formatter("(?P<uid>\w+)_1_qc.fq.gz","(?P<uid>\w+)_2_qc.fq.gz"), 
                     "{path[0]}/pathomap-"+ config['pathomap']['ref_root']+ ".sam", 
                     config['pathomap']) #may need to change output suffix to -appendAlign.sam, for larger ref files
-#regex(r"_[12]_qc.fq.gz")
-# 	sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
-# 						suffix(".sam"),"-sam-report.tsv")#may need to change input suffix to -appendAlign.sam, for larger ref files
+
+	sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
+						suffix(".sam"),"-sam-report.tsv")#may need to change input suffix to -appendAlign.sam, for larger ref files
 
 	sip_pipe.set_head_tasks([sip_pipe[task_originate]])
 
