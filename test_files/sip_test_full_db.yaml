@@ -2,12 +2,10 @@
 ---
 genome_dir: '/genomic_purity/data/Bacteria/'
 org_list: ["Escherichia_coli_0127_H6_E2348_69_uid32571", "Escherichia_coli_042_uid40647"]
-#['Acaryochloris_marina_MBIC11017_uid12997'] # single org test
 pathoqc:
     plat: 'Illumina'
     thread_num: '8'
 pathomap:
-    ref_root: 'CFSAN030013'
-    ref: '/genomic_purity/genomic_purity/test_files/CFSAN030013.fasta'
-    index_dir: '/genomic_purity/genomic_purity/test_files'
-
+    ref_root: 'micro_rm_patho_db_ti'
+    ref: '/genomic_purity/data/micro_rm_patho_db/micro_rm_patho_db_ti.fa'
+    index_dir: '/genomic_purity/data/micro_rm_patho_db'
