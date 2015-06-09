@@ -1,0 +1,11 @@
+## Staphylococcus single org purity config file
+---
+genome_dir: '/genomic_purity/data/Bacteria/'
+org_list: ["Staphylococcus_aureus_04_02981_uid34809","Staphylococcus_aureus_08BA02176_uid174226","Staphylococcus_aureus_11819_97_uid78269","Staphylococcus_aureus_55_2053_uid34891","Staphylococcus_aureus_6850_uid216988","Staphylococcus_aureus_aureus_MRSA252_uid265","Staphylococcus_aureus_aureus_MSSA476_uid266","Staphylococcus_aureus_Bmb9393_uid196937","Staphylococcus_aureus_CC45_uid197422","Staphylococcus_aureus_CN1_uid162343","Staphylococcus_aureus_COL_uid238","Staphylococcus_aureus_ECT_R_2_uid52833","Staphylococcus_aureus_ED133_uid41277","Staphylococcus_aureus_ED98_uid39547","Staphylococcus_aureus_JH1_uid15758","Staphylococcus_aureus_JH9_uid15757","Staphylococcus_aureus_JKD6008_uid29567","Staphylococcus_aureus_JKD6159_uid50759","Staphylococcus_aureus_LGA251_uid62883","Staphylococcus_aureus_M013_uid78007","Staphylococcus_aureus_M1_uid194419","Staphylococcus_aureus_MSHR1132_uid62885","Staphylococcus_aureus_Mu3_uid18509","Staphylococcus_aureus_Mu50_uid263","Staphylococcus_aureus_MW2_uid306","Staphylococcus_aureus_N315_uid264","Staphylococcus_aureus_NCTC_8325_uid237","Staphylococcus_aureus_Newman_uid18801","Staphylococcus_aureus_RF122_uid63","Staphylococcus_aureus_SA40_uid167373","Staphylococcus_aureus_SA957_uid167119","Staphylococcus_aureus_ST228_10388_uid71343","Staphylococcus_aureus_ST228_10497_uid71345","Staphylococcus_aureus_ST228_15532_uid71347","Staphylococcus_aureus_ST228_16035_uid71349","Staphylococcus_aureus_ST228_16125_uid71351","Staphylococcus_aureus_ST228_18412_uid71355","Staphylococcus_aureus_ST398_uid29427","Staphylococcus_aureus_ST398_uid66999","Staphylococcus_aureus_T0131_uid65323","Staphylococcus_aureus_TCH60_uid31539","Staphylococcus_aureus_TW20_uid36647","Staphylococcus_aureus_uid71279","Staphylococcus_aureus_uid71353","Staphylococcus_aureus_uid71357","Staphylococcus_aureus_USA300_FPR3757_uid16313","Staphylococcus_aureus_USA300_TCH1516_uid19489","Staphylococcus_aureus_VC40_uid66591","Staphylococcus_aureus_Z172_uid222409","Pseudomonas_aeruginosa_B136_33_uid185969"]
+pathoqc:
+    plat: 'Illumina'
+    thread_num: '8'
+pathomap:
+    ref_root: 'micro_rm_patho_db_ti'
+    ref: '/genomic_purity/data/micro_rm_patho_db/micro_rm_patho_db_ti.fa'
+    index_dir: '/genomic_purity/data/micro_rm_patho_db'

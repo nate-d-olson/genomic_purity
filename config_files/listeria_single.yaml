@@ -1,0 +1,11 @@
+## Listeria single org purity config file
+---
+genome_dir: '/genomic_purity/data/Bacteria/'
+org_list: ["Listeria_innocua_uid86","Listeria_ivanovii_uid13441","Listeria_monocytogenes_07PF0776_uid78811","Listeria_monocytogenes_08_5923_uid36363","Listeria_monocytogenes_10403S_uid17495","Listeria_monocytogenes_4b_F2365_uid85","Listeria_monocytogenes_ATCC_19117_uid51859","Listeria_monocytogenes_Clip81459_uid32207","Listeria_monocytogenes_Finland_1988_uid17319","Listeria_monocytogenes_FSL_R2_561_uid17317","Listeria_monocytogenes_HCC23_uid29409","Listeria_monocytogenes_J0161_uid17493","Listeria_monocytogenes_J1_220_uid60537","Listeria_monocytogenes_J1816_uid60535","Listeria_monocytogenes_L312_uid51857","Listeria_monocytogenes_La111_uid177104","Listeria_monocytogenes_M7_uid66625","Listeria_monocytogenes_N53_1_uid177090","Listeria_monocytogenes_serotype_1_2a_08_6569_uid167896","Listeria_monocytogenes_serotype_1_2a_08_6997_uid167897","Listeria_monocytogenes_serotype_1_2a_10_0815_uid167901","Listeria_monocytogenes_serotype_1_2a_10_1047_uid167903","Listeria_monocytogenes_serotype_1_2a_88_0478_uid167889","Listeria_monocytogenes_serotype_1_2b_SLCC2755_uid50379","Listeria_monocytogenes_serotype_1_2c_SLCC2372_uid50377","Listeria_monocytogenes_serotype_4a_L99_uid31327","Listeria_monocytogenes_serotype_4b_81_0861_uid167874","Listeria_monocytogenes_serotype_4b_LL195_uid179063","Listeria_monocytogenes_serotype_7_SLCC2482_uid50371","Listeria_monocytogenes_SLCC2376_uid51863","Listeria_monocytogenes_SLCC2378_uid51729","Listeria_monocytogenes_SLCC2479_uid51829","Listeria_monocytogenes_SLCC2540_uid51731","Listeria_monocytogenes_SLCC5850_uid51861","Listeria_monocytogenes_SLCC7179_uid51733","Listeria_monocytogenes_uid276","Listeria_monocytogenes_uid36361","Listeria_seeligeri_serovar_1_2b_SLCC3954_uid41123","Listeria_welshimeri_serovar_6b_SLCC5334_uid13443"]
+pathoqc:
+    plat: 'Illumina'
+    thread_num: '8'
+pathomap:
+    ref_root: 'micro_rm_patho_db_ti'
+    ref: '/genomic_purity/data/micro_rm_patho_db/micro_rm_patho_db_ti.fa'
+    index_dir: '/genomic_purity/data/micro_rm_patho_db'
