@@ -1,0 +1,11 @@
+## test parameters for simulated isolate purity
+---
+genome_dir: '/genomic_purity/data/Bacteria/'
+org_list: ["Escherichia_coli_0127_H6_E2348_69_uid32571", "Escherichia_coli_042_uid40647"]
+pathoqc:
+    plat: 'Illumina'
+    thread_num: '8'
+pathomap:
+    ref_root: 'micro_rm_patho_db_ti'
+    ref: '/genomic_purity/data/micro_rm_patho_db/micro_rm_patho_db_ti.fa'
+    index_dir: '/genomic_purity/data/micro_rm_patho_db'
