@@ -87,15 +87,16 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
 #regex(r"_[12]_qc.fq.gz")
 	# sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
 	#					suffix(".sam"),"-sam-report.tsv")#may need to change input suffix to -appendAlign.sam, for larger ref files
-	sip_pipe.transform(pathoqc_command,output_from("simulate_miseq"),
-						formatter("(?P<uid>\w+)_1.fq", "(?P<uid>\w+)_2.fq"), 
-                        # ["test1","test2"],
-                        ["{path[0]}/{uid[0]}_1_qc.fq.gz","{path[1]}/{uid[1]}_2_qc.fq.gz"],
-                        config['pathoqc'])
+	# sip_pipe.transform(pathoqc_command,output_from("simulate_miseq"),
+	# 					formatter("(?P<uid>\w+)_1.fq", "(?P<uid>\w+)_2.fq"), 
+        #                 # ["test1","test2"],
+        #                 ["{path[0]}/{uid[0]}_1_qc.fq.gz","{path[1]}/{uid[1]}_2_qc.fq.gz"],
+        #                 config['pathoqc'])
 
 	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
-					formatter("(?P<uid>\w+)_1_qc.fq.gz","(?P<uid>\w+)_2_qc.fq.gz"), 
-                    "{path[0]}/pathomap"+ "-appendAlign.sam", 
+				formatter("(?P<uid>\w+)_1.fq", "(?P<uid>\w+)_2.fq"), 
+	# 				formatter("(?P<uid>\w+)_1_qc.fq.gz","(?P<uid>\w+)_2_qc.fq.gz"), 
+                    "{path[0]}/pathomap-appendAlign.sam", 
                     config['pathomap'])
 	
 	sip_pipe.transform(pathoid_command,output_from("pathomap_command"),
