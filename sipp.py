@@ -93,7 +93,8 @@ def make_sipp(org_list, config, pipeline_name = 'sipp'):
         #                 ["{path[0]}/{uid[0]}_1_qc.fq.gz","{path[1]}/{uid[1]}_2_qc.fq.gz"],
         #                 config['pathoqc'])
 
-	sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
+	# sip_pipe.transform(	pathomap_command,output_from("pathoqc_command"),
+	sip_pipe.transform(	pathomap_command, output_from("simulate_miseq"),
 				formatter("(?P<uid>\w+)_1.fq", "(?P<uid>\w+)_2.fq"), 
 	# 				formatter("(?P<uid>\w+)_1_qc.fq.gz","(?P<uid>\w+)_2_qc.fq.gz"), 
                     "{path[0]}/pathomap-appendAlign.sam", 
