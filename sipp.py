@@ -145,7 +145,7 @@ if  not options.just_print and \
 
     config_file= file(options.config_file, 'r')
     config = yaml.load(config_file)
-
+    
     pipeline1a = make_sipp(org_list = config['org_list'], config = config)
     cmdline.run (options, logger = logger)
     sys.exit()
