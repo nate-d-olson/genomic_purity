@@ -26,22 +26,22 @@ def make_mix(input1, input2, mixtures):
     ''' Create mix of input files for mixtures'''
     uid1 = get_uid(input1)
     uid2 = get_uid(input2)
-    input_root = uid1 + "_" + uid2
+    input_root = uid1 + "-" + uid2
 
     mix_sam_list = []
     for i in mixtures:
-        output1 = "Sample" + input_root + str(i) + ".sam"
-        output2 = "Contam" + input_root + str(i - 1) + ".sam"
+        output1 = "Sample_" + input_root + str(i) + ".sam"
+        output2 = "Contam_" + input_root + str(i - 1) + ".sam"
         mix_out = input_root + "_" + str(i) + ".sam"
         mix_sam_list.append(mix_out)
         out1_file = open(output1, 'w')
         out2_file = open(output2, 'w')
 
-        subprocess.call(["samtools", "view", "-s", str(i), input1],
+        subprocess.call(["samtools", "view", "-Su", "-s", str(i), input1],
                         stdout=out1_file)
         assert os.path.isfile(output1), "File %s not found" % output1
 
-        subprocess.call(["samtools", "view", "-s", str(1 - i), input2],
+        subprocess.call(["samtools", "view", "-Su", "-s", str(1 - i), input2],
                         stdout=out2_file)
         assert os.path.isfile(output2), "File %s not found" % output2
 
