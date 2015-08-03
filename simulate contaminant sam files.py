@@ -13,7 +13,7 @@ num_cores = multiprocessing.cpu_count()
 def get_uid(filename):
     m = re.search('uid(.+?)/', filename)
     assert m, "UID not found for %s" % filename
-    m.group(1)
+    return m.group(1)
 
 
 def mix_pathoid(mix_sam):
