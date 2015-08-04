@@ -39,7 +39,7 @@ def pathomap_command(input, output, config): # ref_path, index_dir, fastq1, log_
 
     subprocess.call(pathomap_command, stdout=log_file, stderr=stderr_file)
 
-def pathoid_command(input, output):
+def pathoid_command(input, output, tag = ""):
     # command for running pathoid
     out_dir = os.path.dirname(input)
     log_file = open(out_dir + "/logs/pathoid"+time.strftime("-%Y-%m-%d-%H-%M-%S.log"),'w')
@@ -48,6 +48,8 @@ def pathoid_command(input, output):
     ## pathoscope command root
     pathoid_command = ["python","/PathoScope/pathoscope/pathoscope.py",'--verbose','ID', '-alignFile',input,'-fileType',
                        'sam','-outDir',out_dir,'--outMatrix']#,'-expTag', exptag]
+    if tag != "":
+        pathoid_command += ['-expTag', tag]
     subprocess.call(pathoid_command, stdout=log_file,stderr=stderr_file)
 
 
