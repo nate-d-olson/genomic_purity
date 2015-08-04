@@ -51,12 +51,13 @@ def make_mix(input1, input2, mixtures):
     uid1 = get_uid(input1)
     uid2 = get_uid(input2)
     input_root = uid1 + "-" + uid2
-    subprocess.call(['mkdir', '-p', 'input_root'])
+    subprocess.call(['mkdir', '-p', input_root])
 
     mix_sam_list = []
     for i in mixtures:
         mix_root = input_root + '/' + input_root + str(i)
-        subprocess.call(['mkdir', '-p', mix_root + '/{tmp,logs}'])
+        subprocess.call(['mkdir', '-p', mix_root + '/tmp'])
+        subprocess.call(['mkdir', '-p', mix_root + '/logs'])
 
         output1 = mix_root + "/tmp/Sample_" + input_root + str(i) + ".sam"
         output2 = mix_root + "/tmp/Contam_" + input_root + str(i - 1) + ".sam"
