@@ -22,34 +22,61 @@ def mix_pathoid(mix_sam):
     assert os.path.isfile(mix_id), "File %s not found" % mix_id
 
 
+def append_sam_file(outfile, append_files):
+    '''
+    From Pahtoscope PathomapA.py in
+    https://github.com/PathoScope/PathoScope/blob/master/pathoscope/pathomap/PathoMapA.py
+    Appends all the sam appendFiles to outfile
+    '''
+
+    with open(outfile, 'w') as out1:
+        # First, writing the header by merging headers from all files
+        for file1 in append_files:
+            if (file1 is not None):
+                with open(file1, 'r') as in2:
+                    for ln in in2:
+                        if ln[0] == '@':
+                            out1.write(ln)
+        # Writing the body by merging body from all files
+        for file1 in append_files:
+            if (file1 is not None):
+                with open(file1, 'r') as in2:
+                    for ln in in2:
+                        if ln[0] != '@':
+                            out1.write(ln)
+
+
 def make_mix(input1, input2, mixtures):
     ''' Create mix of input files for mixtures'''
     uid1 = get_uid(input1)
     uid2 = get_uid(input2)
     input_root = uid1 + "-" + uid2
+    subprocess.call(['mkdir', '-p', 'input_root'])
 
     mix_sam_list = []
     for i in mixtures:
-        output1 = "Sample_" + input_root + str(i) + ".sam"
-        output2 = "Contam_" + input_root + str(i - 1) + ".sam"
-        mix_out = input_root + "_" + str(i) + ".sam"
+        mix_root = input_root + '/' + input_root + str(i)
+        subprocess.call(['mkdir', '-p', mix_root + '/{tmp,logs}'])
+
+        output1 = mix_root + "/tmp/Sample_" + input_root + str(i) + ".sam"
+        output2 = mix_root + "/tmp/Contam_" + input_root + str(i - 1) + ".sam"
+        mix_out = mix_root + "/" + input_root + "_" + str(i) + ".sam"
         mix_sam_list.append(mix_out)
         out1_file = open(output1, 'w')
         out2_file = open(output2, 'w')
 
-        subprocess.call(["samtools", "view", "-Su", "-s", str(i), input1],
+        subprocess.call(["samtools", "view", "-Sh", "-s", str(i), input1],
                         stdout=out1_file)
         assert os.path.isfile(output1), "File %s not found" % output1
 
-        subprocess.call(["samtools", "view", "-Su", "-s", str(1 - i), input2],
+        subprocess.call(["samtools", "view", "-Sh", "-s", str(1 - i), input2],
                         stdout=out2_file)
         assert os.path.isfile(output2), "File %s not found" % output2
 
-        subprocess.call(["samtools", "merge", "-u", mix_out, output1, output2])
+        append_sam_file(mix_out, [output1, output2])
         assert os.path.isfile(mix_out), "File %s not found" % mix_out
 
-    for mix_sam in mix_sam_list:
-        pathoid_command(mix_sam)
+        pathoid_command(mix_out, "", input_root + str(i))
 
 
 # read data
@@ -70,6 +97,6 @@ def main(input_list_file, mixtures):
 
 if __name__ == '__main__':
     filename = sys.argv[1]
-    mixtures = [0.9, 0.99, 0.999, 0.9999, 0.99999,
-                0.999999, 0.9999999, 0.99999999]
+    mixtures = [0.9]#, 0.99, 0.999, 0.9999, 0.99999,
+                #0.999999, 0.9999999, 0.99999999]
     main(filename, mixtures)
