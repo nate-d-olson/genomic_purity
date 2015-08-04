@@ -55,14 +55,14 @@ def make_mix(input1, input2, mixtures):
 
     mix_sam_list = []
     for i in mixtures:
-        mix_root = input_root + '/' + input_root + str(i)
+        mix_root = input_root + '/' + input_root + '_' + str(i)
         subprocess.call(['mkdir', '-p', mix_root + '/tmp'])
         subprocess.call(['mkdir', '-p', mix_root + '/logs'])
 
-        output1 = mix_root + "/tmp/Sample_" + input_root + str(i) + ".sam"
-        output2 = mix_root + "/tmp/Contam_" + input_root + str(i - 1) + ".sam"
+        output1 = mix_root + "/tmp/Sample_" + input_root + "_" + str(i) + ".sam"
+        output2 = mix_root + "/tmp/Contam_" + input_root + "_" + str(1 - i) + ".sam"
         mix_out = mix_root + "/" + input_root + "_" + str(i) + ".sam"
-        mix_sam_list.append(mix_out)
+        mix_sam_list.append([mix_out, input_root + "_" + str(i)])
         out1_file = open(output1, 'w')
         out2_file = open(output2, 'w')
 
@@ -77,7 +77,10 @@ def make_mix(input1, input2, mixtures):
         append_sam_file(mix_out, [output1, output2])
         assert os.path.isfile(mix_out), "File %s not found" % mix_out
 
-        pathoid_command(mix_out, "", input_root + str(i))
+        subprocess.call(['rm', '-r', mix_root + 'tmp'])
+        #pathoid_command(mix_out, "", input_root + str(i))
+
+    Parallel(n_jobs=num_cores)(delayed(pathoid_command)(i,"", j) for i, j in mix_sam_list)
 
 
 # read data
@@ -92,12 +95,12 @@ def main(input_list_file, mixtures):
     input_list = readdat(input_list_file)
     input_pairs = permutations(input_list, 2)
 
-    Parallel(n_jobs=num_cores)(delayed(make_mix)(i, j, mixtures)
+    Parallel(n_jobs=6)(delayed(make_mix)(i, j, mixtures)
                                for i, j in input_pairs)
 
 
 if __name__ == '__main__':
     filename = sys.argv[1]
-    mixtures = [0.9]#, 0.99, 0.999, 0.9999, 0.99999,
-                #0.999999, 0.9999999, 0.99999999]
+    mixtures = [0.9, 0.99, 0.999, 0.9999, 0.99999,
+                0.999999, 0.9999999, 0.99999999]
     main(filename, mixtures)
