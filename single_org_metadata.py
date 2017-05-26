@@ -6,7 +6,8 @@
 import re
 import sys
 from os import walk
-from Bio import SeqIO
+from Bio import SeqIO 
+from Bio.SeqUtils import GC
 import pandas as pd
 
 def get_art_dat(art_log):
@@ -28,7 +29,7 @@ def get_art_dat(art_log):
 def get_ref_accessions(fasta):
     seq_id = []
     for seq_record in SeqIO.parse(fasta, "fasta"):
-        seq_id.append([fasta, seq_record.id])
+        seq_id.append([fasta, seq_record.id, GC(seq_record.seq), seq_record.description]) 
     return seq_id
 
 def get_fq_dat(fastq):
@@ -54,15 +55,15 @@ def process_results_dir(results_directory):
 def write_output_files(sim_dat, out_dir):
 	art_df = pd.DataFrame(sim_dat['art'])
 	art_df.columns = ["org", "rand"]
-	art_df.to_csv(out_dir + '/'+'single-org_art.csv', index = False)
+	art_df.to_csv(out_dir + '/'+'singleOrgArt.csv', index = False)
 
 	seq_df = pd.DataFrame(sim_dat["seq"])
-	seq_df.columns = ['file', 'seq_id']
-	seq_df.to_csv(out_dir + '/' +'single-org_ref.csv', index = False)
+	seq_df.columns = ['file', 'seq_id', 'GC', 'description']
+	seq_df.to_csv(out_dir + '/' +'singleOrgRef.csv', index = False)
 
 	fq_df = pd.DataFrame(sim_dat["fq"])
 	fq_df.columns = ['file', 'read_count']
-	fq_df.to_csv(out_dir + '/' +' single-org_fq.csv', index = False)
+	fq_df.to_csv(out_dir + '/' + 'singleOrgFq.csv', index = False)
 
 def main(sim_path, out_dir):
 	sim_dat = process_results_dir(sim_path)
